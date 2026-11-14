@@ -51,8 +51,8 @@ custom_css = """
         font-weight: bold !important;
     }
     
-    /* --- FIXED TOGGLE BUTTON IN HEADER --- */
-    /* Hide the default Streamlit arrows */
+    /* --- HAMBURGER TOGGLE INSIDE THE RED HEADER --- */
+    /* Hide the default Streamlit arrows / icons */
     [data-testid="stSidebarCollapseButton"] span,
     [data-testid="collapsedControl"] span,
     [data-testid="stSidebarCollapseButton"] svg,
@@ -60,28 +60,38 @@ custom_css = """
         display: none !important;
     }
     
-    /* Position and style the toggle buttons to look like a hamburger menu */
+    /* Position the real Streamlit toggle button inside the header */
     [data-testid="stSidebarCollapseButton"],
     [data-testid="collapsedControl"] {
         position: fixed !important;
-        top: 22px !important;
-        left: 20px !important;
+        top: 18px !important;
+        left: 22px !important;
         z-index: 9999999 !important;
         background-color: transparent !important;
         border: none !important;
+        width: 42px !important;
+        height: 42px !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
         cursor: pointer !important;
+        border-radius: 6px !important;
     }
     
     /* The hamburger icon (3 lines) */
     [data-testid="stSidebarCollapseButton"]::before,
     [data-testid="collapsedControl"]::before {
         content: "☰" !important;
-        font-size: 32px !important;
+        font-size: 28px !important;
         color: white !important;
         font-weight: bold !important;
+        line-height: 1 !important;
+    }
+    
+    /* Hover effect for hamburger */
+    [data-testid="stSidebarCollapseButton"]:hover,
+    [data-testid="collapsedControl"]:hover {
+        background-color: rgba(255,255,255,0.15) !important;
     }
 
     /* Make native header transparent */
@@ -104,14 +114,15 @@ custom_css = """
     h1, h2, h3, h4, h5, h6, p, label {
         color: #1E3B2F !important;
     }
-    [data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2, [data-testid="stSidebar"] h3, [data-testid="stSidebar"] p, [data-testid="stSidebar"] label {
+    [data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2, [data-testid="stSidebar"] h3, 
+    [data-testid="stSidebar"] p, [data-testid="stSidebar"] label {
         color: #F5F0E6 !important;
     }
     
     /* --- CUSTOM HEADER CSS --- */
     .firms-header {
         background-color: #c90000;
-        padding: 0px 20px 0px 70px; /* Extra left padding for the hamburger */
+        padding: 0px 25px 0px 70px;   /* left padding leaves space for hamburger */
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -119,6 +130,7 @@ custom_css = """
         height: 75px;
         width: 100%;
         margin-top: 0px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.25);
     }
     .header-left {
         display: flex;
@@ -141,24 +153,28 @@ custom_css = """
         font-size: 13px;
         margin-top: 2px;
         color: white;
+        opacity: 0.95;
     }
     .header-right {
         display: flex;
         align-items: center;
-        gap: 30px;
-        font-size: 18px;
+        gap: 28px;
+        font-size: 17px;
         font-weight: 600;
     }
     .header-item {
         display: flex;
         align-items: center;
         gap: 8px;
-        text-decoration: none;
-        color: white;
+        text-decoration: none !important;
+        color: white !important;
+        padding: 6px 10px;
+        border-radius: 6px;
+        transition: background 0.2s;
     }
     .header-item:hover {
-        opacity: 0.8;
-        color: white;
+        background-color: rgba(255,255,255,0.15);
+        color: white !important;
     }
     
     /* Padding for main content area */
@@ -185,7 +201,7 @@ def load_data():
 
 hotspots = load_data()
 
-# 3. INJECT CUSTOM HEADER
+# 3. INJECT CUSTOM HEADER (hamburger is positioned by CSS next to the title)
 st.markdown("""
 <div class="firms-header">
     <div class="header-left">
@@ -197,16 +213,31 @@ st.markdown("""
         </div>
     </div>
     <div class="header-right">
-        <a href="https://github.com/yashaswinik-1610/Nasa-Hackathon-2026-/raw/main/Processed%20Data/harmonized_hotspots_canada_us.parquet" download class="header-item">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+        <a href="https://github.com/yashaswinik-1610/Nasa-Hackathon-2026-/raw/main/Processed%20Data/harmonized_hotspots_canada_us.parquet" 
+           download class="header-item" target="_blank">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
             <span>Download</span>
         </a>
         <a href="https://connect.posit.cloud/" target="_blank" class="header-item">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="18" cy="5" r="3"></circle>
+                <circle cx="6" cy="12" r="3"></circle>
+                <circle cx="18" cy="19" r="3"></circle>
+                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+            </svg>
             <span>Share</span>
         </a>
-        <div class="header-item" title="This tool harmonizes MODIS and VIIRS satellite data to provide a continuous view of fire activity across Canada and the US from 2001 to 2025.">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+        <div class="header-item" title="This tool harmonizes MODIS and VIIRS satellite data to provide a continuous, sensor-agnostic view of fire activity across Canada and the US from 2001 to 2025.">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="16" x2="12" y2="12"></line>
+                <line x1="12" y1="8" x2="12.01" y2="8"></line>
+            </svg>
             <span>About</span>
         </div>
     </div>
@@ -269,7 +300,7 @@ elif search_method == "Coordinates (Lat/Lon)":
     region_name = "Custom Area"
     zoom_level = 4
 
-else: # Live Location
+else:  # Live Location
     st.sidebar.markdown("**Live Location**")
     if st.sidebar.button("Detect My Location"):
         st.sidebar.success("Location detected! Centering map.")
@@ -296,7 +327,6 @@ with col1:
     map_data = region_df[region_df["year"] == selected_year]
     
     if len(map_data) > 0:
-        # Added spinner to fix blank map loading
         with st.spinner("Loading Map..."):
             map_df = map_data.sample(n=min(5000, len(map_data)), random_state=42)
             
@@ -343,7 +373,7 @@ with col2:
         xgap=3,
         ygap=3,
         zmin=0,
-        zmax=int(pivot.values.max()),
+        zmax=int(pivot.values.max()) if pivot.values.max() > 0 else 1,
         hovertemplate="Year: %{y}<br>Fires: %{z}<extra></extra>",
         colorbar=dict(
             title="Intensity", 
@@ -437,7 +467,7 @@ fig_trend.update_layout(
     )
 )
 
-selected_count = int(yearly_totals[yearly_totals["year"] == selected_year]["harmonized_count"].values[0])
+selected_count = int(yearly_totals[yearly_totals["year"] == selected_year]["harmonized_count"].values[0]) if selected_year in yearly_totals["year"].values else 0
 fig_trend.add_annotation(
     x=selected_year, 
     y=selected_count,

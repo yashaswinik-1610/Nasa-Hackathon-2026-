@@ -33,7 +33,7 @@ custom_css = """
         font-family: 'Times New Roman', Times, serif !important;
     }
     
-    /* FIX: Make native header transparent so sidebar toggle button stays visible */
+    /* Make native header transparent so sidebar toggle button stays visible */
     header[data-testid="stHeader"] {
         background-color: transparent !important;
         background: transparent !important;
@@ -68,17 +68,12 @@ custom_css = """
         color: white;
         height: 75px;
         width: 100%;
-        margin-top: 10px; /* Leaves room for the native toggle button */
+        margin-top: 10px;
     }
     .header-left {
         display: flex;
         align-items: center;
         gap: 15px;
-    }
-    .hamburger {
-        font-size: 28px;
-        font-weight: bold;
-        color: white;
     }
     .logo-area {
         display: flex;
@@ -169,12 +164,15 @@ st.markdown("""
 <div class="main-content">
 """, unsafe_allow_html=True)
 
-# 4. SIDEBAR SEARCH OPTIONS (All functional now)
+# 4. SIDEBAR SEARCH OPTIONS
 st.sidebar.markdown("<h3 style='text-align: center;'>Search Options</h3>", unsafe_allow_html=True)
 st.sidebar.markdown("---")
 
-# Year Selection
-selected_year = st.sidebar.slider("Select Year to View", min_value=2001, max_value=2025, value=2023)
+# Search Bar for Year (Selectbox allows typing to search)
+available_years = [str(y) for y in sorted(hotspots["year"].unique(), reverse=True)]
+selected_year_str = st.sidebar.selectbox("Search Year", available_years)
+selected_year = int(selected_year_str)
+
 st.sidebar.markdown("---")
 
 # Search Method Selection
@@ -238,7 +236,7 @@ else: # Live Location
         st.sidebar.info("Click the button to center the map on your current region.")
 
 st.sidebar.markdown("---")
-show_graph = st.sidebar.toggle("Show Analytics Graph", value=True)
+# Removed the Analytics Graph toggle here
 
 # 5. FILTERING LOGIC
 region_df = hotspots[
@@ -342,68 +340,67 @@ with col2:
     )
     st.plotly_chart(fig_calendar, use_container_width=True)
 
-# 7. ANALYTICS GRAPH
-if show_graph:
-    st.markdown("---")
-    st.markdown(f"<h3 style='text-align: center;'>Analytics Graph - {region_name}</h3>", unsafe_allow_html=True)
-    yearly_totals = region_df.groupby("year")["harmonized_count"].sum().reset_index()
-    yearly_totals["year"] = yearly_totals["year"].astype(int)
-    yearly_totals["harmonized_count"] = yearly_totals["harmonized_count"].astype(int)
+# 7. ANALYTICS GRAPH (Always visible now)
+st.markdown("---")
+st.markdown(f"<h3 style='text-align: center;'>Analytics Graph - {region_name}</h3>", unsafe_allow_html=True)
+yearly_totals = region_df.groupby("year")["harmonized_count"].sum().reset_index()
+yearly_totals["year"] = yearly_totals["year"].astype(int)
+yearly_totals["harmonized_count"] = yearly_totals["harmonized_count"].astype(int)
 
-    fig_trend = px.line(
-        yearly_totals, 
-        x="year", 
-        y="harmonized_count", 
-        markers=True,
-        color_discrete_sequence=["#1E3B2F"] 
+fig_trend = px.line(
+    yearly_totals, 
+    x="year", 
+    y="harmonized_count", 
+    markers=True,
+    color_discrete_sequence=["#1E3B2F"] 
+)
+
+fig_trend.update_traces(
+    fill='tozeroy',
+    fillcolor='rgba(30, 59, 47, 0.15)',
+    line=dict(width=3),
+    marker=dict(size=8, color="#1E3B2F")
+)
+
+fig_trend.update_layout(
+    xaxis_title="<b>Year</b>",
+    yaxis_title="<b>Harmonized Count</b>",
+    paper_bgcolor="#F5F0E6",
+    plot_bgcolor="#F5F0E6",
+    font=dict(family="Times New Roman", color="#1E3B2F", size=14),
+    margin=dict(l=60, r=30, t=40, b=40),
+    height=400,
+    xaxis=dict(
+        showgrid=True,
+        gridcolor='#C8B48A',
+        showline=True,
+        linewidth=2,
+        linecolor='#1E3B2F',
+        mirror=True,
+        tickfont=dict(color="#1E3B2F", size=12)
+    ),
+    yaxis=dict(
+        showgrid=True,
+        gridcolor='#C8B48A',
+        showline=True,
+        linewidth=2,
+        linecolor='#1E3B2F',
+        mirror=True,
+        tickformat=",d",
+        tickfont=dict(color="#1E3B2F", size=12)
     )
+)
 
-    fig_trend.update_traces(
-        fill='tozeroy',
-        fillcolor='rgba(30, 59, 47, 0.15)',
-        line=dict(width=3),
-        marker=dict(size=8, color="#1E3B2F")
-    )
+selected_count = int(yearly_totals[yearly_totals["year"] == selected_year]["harmonized_count"].values[0])
+fig_trend.add_annotation(
+    x=selected_year, 
+    y=selected_count,
+    text="▼", 
+    showarrow=False,
+    font=dict(color="red", size=24),
+    yshift=15
+)
 
-    fig_trend.update_layout(
-        xaxis_title="<b>Year</b>",
-        yaxis_title="<b>Harmonized Count</b>",
-        paper_bgcolor="#F5F0E6",
-        plot_bgcolor="#F5F0E6",
-        font=dict(family="Times New Roman", color="#1E3B2F", size=14),
-        margin=dict(l=60, r=30, t=40, b=40),
-        height=400,
-        xaxis=dict(
-            showgrid=True,
-            gridcolor='#C8B48A',
-            showline=True,
-            linewidth=2,
-            linecolor='#1E3B2F',
-            mirror=True,
-            tickfont=dict(color="#1E3B2F", size=12)
-        ),
-        yaxis=dict(
-            showgrid=True,
-            gridcolor='#C8B48A',
-            showline=True,
-            linewidth=2,
-            linecolor='#1E3B2F',
-            mirror=True,
-            tickformat=",d",
-            tickfont=dict(color="#1E3B2F", size=12)
-        )
-    )
-
-    selected_count = int(yearly_totals[yearly_totals["year"] == selected_year]["harmonized_count"].values[0])
-    fig_trend.add_annotation(
-        x=selected_year, 
-        y=selected_count,
-        text="▼", 
-        showarrow=False,
-        font=dict(color="red", size=24),
-        yshift=15
-    )
-
-    st.plotly_chart(fig_trend, use_container_width=True)
+st.plotly_chart(fig_trend, use_container_width=True)
 
 st.markdown("</div>", unsafe_allow_html=True)

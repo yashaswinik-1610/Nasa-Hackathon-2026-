@@ -3,8 +3,6 @@ import pandas as pd
 import streamlit as st
 import plotly.express as px
 import plotly.graph_objects as go
-import folium
-from streamlit_folium import st_folium
 
 st.set_page_config(page_title="FIREWATCH", layout="wide", initial_sidebar_state="expanded")
 
@@ -19,144 +17,52 @@ custom_css = """
         color: #1E3B2F !important;
     }
     
-    /* --- SIDEBAR STYLING --- */
-    [data-testid="stSidebar"] {
-        background-color: #1E3B2F !important;
-        height: 82vh !important;
-        margin-top: 95px !important; /* Pushed down to fit the expanded header */
-        margin-left: 10px !important;
-        border-radius: 15px !important;
-        border: 1px solid #7F8C6A !important;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.3) !important;
-    }
-    
-    [data-testid="stSidebar"] > div:first-child {
-        height: 100% !important;
-        overflow-y: auto !important;
-    }
-    
-    [data-testid="stSidebar"] * {
-        color: #F5F0E6 !important;
-        font-family: 'Times New Roman', Times, serif !important;
-    }
-    
-    [data-testid="stSidebar"] label p {
-        font-size: 1.15rem !important;
-        font-weight: bold !important;
-    }
-    
-    /* --- FIXING THE TOGGLE BUTTON (HAMBURGER) --- */
-    
-    /* 1. Completely hide all native elements inside the toggle button */
-    [data-testid="stSidebarCollapseButton"] svg,
-    [data-testid="stSidebarCollapseButton"] span,
-    [data-testid="stSidebarCollapseButton"] div,
-    [data-testid="collapsedControl"] svg,
-    [data-testid="collapsedControl"] span,
-    [data-testid="collapsedControl"] div {
-        display: none !important;
-        opacity: 0 !important;
-        visibility: hidden !important;
-    }
-    
-    /* 2. Position the button inside the expanded header */
-    [data-testid="stSidebarCollapseButton"],
-    [data-testid="collapsedControl"] {
-        position: fixed !important;
-        top: 20px !important;      
-        left: 20px !important;     
-        z-index: 9999999 !important;
-        background: transparent !important;
-        border: none !important;
-        width: 45px !important;
-        height: 45px !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        cursor: pointer !important;
-        border-radius: 8px !important;
-    }
-    
-    /* 3. Inject the custom white hamburger icon */
-    [data-testid="stSidebarCollapseButton"]::before,
-    [data-testid="collapsedControl"]::before {
-        content: "☰" !important;
-        display: block !important;
-        visibility: visible !important;
-        opacity: 1 !important;
-        font-size: 34px !important;
-        color: white !important;
-        font-family: Arial, sans-serif !important;
-        font-weight: bold !important;
-        line-height: 1 !important;
-    }
-    
-    /* Hover effect */
-    [data-testid="stSidebarCollapseButton"]:hover,
-    [data-testid="collapsedControl"]:hover {
-        background-color: rgba(255,255,255,0.15) !important;
-    }
-    
-    /* Native Header Cleanup */
+    /* --- HIDE NATIVE HEADER COMPLETELY --- */
     header[data-testid="stHeader"] {
-        background-color: transparent !important;
-        background: transparent !important;
+        display: none !important;
     }
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     
+    /* --- MAIN CONTAINER PADDING --- */
+    /* Push content down so it doesn't hide under the fixed red header */
     .block-container {
-        padding-top: 0rem !important;
-        padding-left: 0rem !important;
-        padding-right: 0rem !important;
+        padding-top: 100px !important; 
+        padding-left: 20px !important;
+        padding-right: 20px !important;
         max-width: 100% !important;
     }
     
-    h1, h2, h3, h4, h5, h6, p, label {
-        color: #1E3B2F !important;
-    }
-    [data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2, [data-testid="stSidebar"] h3, 
-    [data-testid="stSidebar"] p, [data-testid="stSidebar"] label {
-        color: #F5F0E6 !important;
-    }
-    
-    /* --- EXPANDED CUSTOM HEADER --- */
+    /* --- FIXED RED HEADER --- */
     .firms-header {
-        background-color: #c90000;
-        padding: 0px 25px 0px 80px; /* 80px left padding makes room for the hamburger */
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        height: 85px !important;
+        background-color: #c90000 !important;
         display: flex;
         align-items: center;
         justify-content: space-between;
-        color: white;
-        height: 85px; /* EXPANDED HEADER HEIGHT */
-        width: 100%;
-        margin-top: 0px;
+        padding: 0px 25px 0px 75px !important; /* 75px left space for hamburger */
         box-shadow: 0 2px 8px rgba(0,0,0,0.25);
-        position: relative;
-        z-index: 100;
+        z-index: 999999 !important;
     }
-    .header-left {
-        display: flex;
-        align-items: center;
-        gap: 15px;
-    }
-    .logo-area {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-    }
+    
     .logo-text {
-        font-size: 28px; /* Slightly larger text */
+        font-size: 28px;
         font-weight: bold;
         line-height: 1;
         letter-spacing: 1px;
         color: white;
+        font-family: 'Times New Roman', Times, serif;
     }
     .logo-subtext {
         font-size: 14px;
         margin-top: 2px;
         color: white;
         opacity: 0.95;
+        font-family: 'Times New Roman', Times, serif;
     }
     .header-right {
         display: flex;
@@ -174,14 +80,92 @@ custom_css = """
         padding: 8px 12px;
         border-radius: 6px;
         transition: background 0.2s;
+        font-family: 'Times New Roman', Times, serif;
     }
     .header-item:hover {
         background-color: rgba(255,255,255,0.15);
-        color: white !important;
     }
     
-    .main-content {
-        padding: 15px 25px 25px 25px;
+    /* --- FORCE HAMBURGER BUTTON INTO THE RED HEADER --- */
+    [data-testid="stSidebarCollapseButton"] svg,
+    [data-testid="stSidebarCollapseButton"] span,
+    [data-testid="stSidebarCollapseButton"] div,
+    [data-testid="collapsedControl"] svg,
+    [data-testid="collapsedControl"] span,
+    [data-testid="collapsedControl"] div {
+        display: none !important;
+        opacity: 0 !important;
+    }
+    
+    [data-testid="stSidebarCollapseButton"],
+    [data-testid="collapsedControl"] {
+        position: fixed !important;
+        top: 22px !important;      
+        left: 20px !important;     
+        z-index: 1000000 !important; /* Above the red header */
+        background: transparent !important;
+        border: none !important;
+        width: 45px !important;
+        height: 45px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        cursor: pointer !important;
+        border-radius: 8px !important;
+    }
+    
+    [data-testid="stSidebarCollapseButton"]::before,
+    [data-testid="collapsedControl"]::before {
+        content: "☰" !important;
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        font-size: 34px !important;
+        color: white !important;
+        font-family: Arial, sans-serif !important;
+        font-weight: bold !important;
+        line-height: 1 !important;
+    }
+    
+    [data-testid="stSidebarCollapseButton"]:hover,
+    [data-testid="collapsedControl"]:hover {
+        background-color: rgba(255,255,255,0.15) !important;
+    }
+    
+    /* --- SIDEBAR STYLING --- */
+    [data-testid="stSidebar"] {
+        background-color: #1E3B2F !important;
+        height: 82vh !important;
+        margin-top: 95px !important; /* Starts below the fixed header */
+        margin-left: 10px !important;
+        border-radius: 15px !important;
+        border: 1px solid #7F8C6A !important;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.3) !important;
+        z-index: 100 !important;
+    }
+    
+    [data-testid="stSidebar"] > div:first-child {
+        height: 100% !important;
+        overflow-y: auto !important;
+    }
+    
+    [data-testid="stSidebar"] * {
+        color: #F5F0E6 !important;
+        font-family: 'Times New Roman', Times, serif !important;
+    }
+    
+    [data-testid="stSidebar"] label p {
+        font-size: 1.15rem !important;
+        font-weight: bold !important;
+    }
+    
+    /* General Text Color */
+    h1, h2, h3, h4, h5, h6, p, label {
+        color: #1E3B2F !important;
+    }
+    [data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2, [data-testid="stSidebar"] h3, 
+    [data-testid="stSidebar"] p, [data-testid="stSidebar"] label {
+        color: #F5F0E6 !important;
     }
 </style>
 """
@@ -202,15 +186,13 @@ def load_data():
 
 hotspots = load_data()
 
-# Custom Header
+# Inject Fixed Header
 st.markdown("""
 <div class="firms-header">
-    <div class="header-left">
-        <div class="logo-area">
-            <div>
-                <div class="logo-text">FIREWATCH</div>
-                <div class="logo-subtext">Satellite Fire Detection System</div>
-            </div>
+    <div class="logo-area">
+        <div>
+            <div class="logo-text">FIREWATCH</div>
+            <div class="logo-subtext">Satellite Fire Detection System</div>
         </div>
     </div>
     <div class="header-right">
@@ -243,7 +225,6 @@ st.markdown("""
         </div>
     </div>
 </div>
-<div class="main-content">
 """, unsafe_allow_html=True)
 
 # Sidebar
@@ -318,47 +299,46 @@ region_df = hotspots[
     (hotspots["grid_lon"] >= lon_min) & (hotspots["grid_lon"] <= lon_max)
 ]
 
-# ====================== FULL WIDTH MAP ======================
+# ====================== PLOTLY MAP (Loads Instantly) ======================
+st.markdown(f"<h3 style='text-align: center;'>Map - {region_name} ({selected_year})</h3>", unsafe_allow_html=True)
 map_data = region_df[region_df["year"] == selected_year]
 
 if len(map_data) > 0:
-    with st.spinner("Loading Map..."):
-        map_df = map_data.sample(n=min(6000, len(map_data)), random_state=42)
-        
-        center_lat = (lat_min + lat_max) / 2
-        center_lon = (lon_min + lon_max) / 2
-        
-        m = folium.Map(
-            location=[center_lat, center_lon],
-            zoom_start=zoom_level,
-            tiles="Esri World Imagery",
-            control_scale=True
-        )
-        
-        for _, row in map_df.iterrows():
-            folium.CircleMarker(
-                location=[row.grid_lat, row.grid_lon],
-                radius=2.5,
-                color="red",
-                fill=True,
-                fill_color="red",
-                fill_opacity=0.85,
-                tooltip=(
-                    f"Lat: {row.grid_lat:.3f}<br>"
-                    f"Lon: {row.grid_lon:.3f}<br>"
-                    f"Year: {int(row.year)}<br>"
-                    f"Fires: {int(row.harmonized_count)}"
-                )
-            ).add_to(m)
-            
-        # Full width map
-        st_folium(m, height=620, use_container_width=True, returned_objects=[])
+    map_df = map_data.sample(n=min(8000, len(map_data)), random_state=42)
+    
+    center_lat = (lat_min + lat_max) / 2
+    center_lon = (lon_min + lon_max) / 2
+    
+    # Using Plotly scatter_map for instant rendering without iframes
+    fig_map = px.scatter_map(
+        map_df,
+        lat="grid_lat",
+        lon="grid_lon",
+        zoom=zoom_level,
+        center={"lat": center_lat, "lon": center_lon},
+        color_discrete_sequence=["red"],
+        map_style="open-street-map", # Free, no API key needed
+        hover_data={
+            "grid_lat": ":.3f", 
+            "grid_lon": ":.3f", 
+            "year": True,
+            "harmonized_count": True
+        },
+        height=600
+    )
+    
+    fig_map.update_traces(marker=dict(size=6, opacity=0.8))
+    fig_map.update_layout(
+        margin={"r":0,"t":0,"l":0,"b":0},
+        paper_bgcolor="#F5F0E6",
+        mapbox=dict(style="open-street-map")
+    )
+    st.plotly_chart(fig_map, use_container_width=True)
 else:
     st.warning(f"No data available for {region_name} in {selected_year}.")
 
 # ====================== BURNING CALENDAR + ANALYTICS ======================
 st.markdown("---")
-
 col_cal, col_trend = st.columns([1, 1.4])
 
 with col_cal:
@@ -450,5 +430,3 @@ with col_trend:
         yaxis=dict(showgrid=True, gridcolor='#C8B48A', showline=True, linewidth=2, linecolor='#1E3B2F', mirror=True, tickformat=",d")
     )
     st.plotly_chart(fig_trend, use_container_width=True)
-
-st.markdown("</div>", unsafe_allow_html=True)

@@ -124,21 +124,18 @@ if use_bbox:
     ]
 
 # 6. MAIN DASHBOARD LAYOUT
-col1, col2 = st.columns([1.5, 1])
+col1, col2 = st.columns([1.3, 1])
 
 with col1:
     st.markdown("<h3 style='text-align: center;'>Map</h3>", unsafe_allow_html=True)
     map_data = region_df[region_df["year"] == selected_year]
     
     if len(map_data) > 0:
-        # Sample to keep it fast
         map_df = map_data.sample(n=min(5000, len(map_data)), random_state=42)
         
-        # --- FOLIUM SATELLITE MAP ---
-        # Using Esri World Imagery for the realistic satellite look
+        # Satellite Map (NASA FIRMS Style)
         m = folium.Map(location=[45, -100], zoom_start=3, tiles="Esri World Imagery")
         
-        # Add bright red dots
         for _, row in map_df.iterrows():
             folium.CircleMarker(
                 location=[row.grid_lat, row.grid_lon],
@@ -146,64 +143,71 @@ with col1:
                 color="red",
                 fill=True, 
                 fill_color="red",  
-                fill_opacity=0.8,
+                fill_opacity=0.9,
                 tooltip=f"Lat: {row.grid_lat:.3f}<br>Lon: {row.grid_lon:.3f}<br>Year: {row.year}<br>Fires: {row.harmonized_count}"
             ).add_to(m)
             
-        # Display the map
-        st_folium(m, height=550, use_container_width=True)
+        st_folium(m, height=500, use_container_width=True)
     else:
         st.warning(f"No data available for {country} in {selected_year}.")
 
 with col2:
     st.markdown("<h3 style='text-align: center;'>Burning Calendar</h3>", unsafe_allow_html=True)
     
+    # Generate complete matrix to ensure no gaps
     monthly = region_df.groupby(["year", "month"])["harmonized_count"].sum().reset_index()
-    monthly["year_str"] = monthly["year"].astype(str)
     
-    # GitHub-style scatter squares
-    fig_calendar = px.scatter(
-        monthly,
-        x="month",
-        y="year_str",
-        color="harmonized_count",
-        color_continuous_scale="YlOrRd",
-        size=[1] * len(monthly),
-        size_max=15
-    )
+    all_years = list(range(2001, 2026))
+    all_months = list(range(1, 13))
     
-    fig_calendar.update_traces(
-        marker=dict(
-            symbol="square", 
-            size=12, 
-            line=dict(width=1, color='#F5F0E6')
+    pivot = monthly.pivot(index="year", columns="month", values="harmonized_count")
+    pivot = pivot.reindex(index=all_years, columns=all_months).fillna(0)
+    
+    # Build GitHub-style Heatmap (Horizontal)
+    fig_calendar = go.Figure(data=go.Heatmap(
+        z=pivot.values,
+        x=["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+        y=[str(y) for y in pivot.index],
+        colorscale="YlOrRd", 
+        xgap=3, # Thicker gaps for GitHub look
+        ygap=3,
+        zmin=0,
+        zmax=float(pivot.values.max()),
+        # Put the intensity strip right next to the calendar
+        colorbar=dict(
+            title="Intensity", 
+            thickness=15, 
+            len=0.8,
+            x=1.05, # Push it slightly to the right
+            y=0.5
         )
-    )
+    ))
 
+    # Highlight selected year
+    year_index = list(pivot.index).index(selected_year)
     fig_calendar.add_shape(
         type="rect", 
-        x0=0.5, x1=12.5, 
-        y0=str(selected_year), y1=str(selected_year), 
+        x0=-0.5, x1=11.5, 
+        y0=year_index - 0.5, y1=year_index + 0.5, 
         line=dict(color="#1E3B2F", width=3)
     )
 
     fig_calendar.update_layout(
-        height=550,
+        height=500,
         paper_bgcolor="#F5F0E6",
         plot_bgcolor="#F5F0E6",
         font=dict(family="Times New Roman", color="#1E3B2F"),
         xaxis=dict(
-            tickmode="array",
-            tickvals=list(range(1, 13)),
-            ticktext=["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
-            side="top",
-            showgrid=False,
-            zeroline=False
-        ),
-        yaxis=dict(
-            categoryorder="category descending",
+            side="top", # Months on top
             showgrid=False,
             zeroline=False,
+            tickfont=dict(size=11)
+        ),
+        yaxis=dict(
+            autorange="reversed", # Years go top-down
+            showgrid=False,
+            zeroline=False,
+            tickfont=dict(size=11),
             title="Year"
         ),
         margin=dict(l=50, r=10, t=40, b=20)
@@ -216,7 +220,7 @@ if show_graph:
     st.markdown("<h3 style='text-align: center;'>Yearly Fire Trend</h3>", unsafe_allow_html=True)
     yearly_totals = region_df.groupby("year")["harmonized_count"].sum().reset_index()
 
-    # Thick filled area chart
+    # Bold Area Chart
     fig_trend = px.area(
         yearly_totals, 
         x="year", 
@@ -226,7 +230,7 @@ if show_graph:
 
     fig_trend.update_traces(
         line=dict(width=4),
-        fillcolor="rgba(30, 59, 47, 0.3)"
+        fillcolor="rgba(30, 59, 47, 0.4)"
     )
 
     fig_trend.update_layout(
@@ -236,7 +240,7 @@ if show_graph:
         plot_bgcolor="#F5F0E6",
         font=dict(family="Times New Roman", color="#1E3B2F", size=14),
         margin=dict(l=50, r=20, t=30, b=20),
-        height=400
+        height=350 # Kept compact so it doesn't stretch the page
     )
 
     selected_count = yearly_totals[yearly_totals["year"] == selected_year]["harmonized_count"].values[0]

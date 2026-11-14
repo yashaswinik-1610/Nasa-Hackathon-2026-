@@ -2,6 +2,7 @@ import os
 import pandas as pd
 import streamlit as st
 import plotly.express as px
+import plotly.graph_objects as go
 import folium
 from streamlit_folium import st_folium
 
@@ -52,95 +53,74 @@ st.markdown(custom_css, unsafe_allow_html=True)
 @st.cache_data
 def load_data():
     parquet_file = "Processed Data/harmonized_hotspots_canada_us.parquet"
-    monthly_file = "Processed Data/harmonized_monthly_summary.csv"
-    
     try:
         hotspots = pd.read_parquet(parquet_file)
-        monthly = pd.read_csv(monthly_file)
-        return hotspots, monthly
+        return hotspots
     except Exception as e:
         st.error(f"Error loading data. Details: {e}")
         st.stop()
 
-hotspots, monthly = load_data()
+hotspots = load_data()
 
 # 3. SIDEBAR LAYOUT
 st.sidebar.markdown("<h1 style='text-align: center; font-size: 2em;'>Fire Analytics</h1>", unsafe_allow_html=True)
 st.sidebar.markdown("---")
 
-# View Mode
-view_mode = st.sidebar.radio("Select View Mode", ["Public User", "Admin (Data Export)"])
+country = st.sidebar.selectbox("Select Region", ["Canada", "United States"])
 
-# --- SEARCH BAR FOR COUNTRY ---
-st.sidebar.subheader("Search Region")
-country_input = st.sidebar.text_input("Enter Country Name (e.g., Canada, United States)")
+selected_year = st.sidebar.slider("Select Year for Map", min_value=2001, max_value=2025, value=2023)
 
-# Validate the input
-if country_input:
-    country_input = country_input.strip().title() # Capitalize first letters
-    if country_input not in ["Canada", "United States"]:
-        st.warning(f"Data for '{country_input}' is not currently available. Data should be updated.")
-        st.stop() # Stops the app here if they type an invalid country
-else:
-    country_input = "Canada" # Default if empty
-
-# --- BOUNDING BOX (Transparent & Toggleable) ---
 st.sidebar.markdown("---")
-use_bbox = st.sidebar.checkbox("Enable Bounding Box Filter")
+use_bbox = st.toggle("Enable Bounding Box Filter")
 
-# Default coordinates for the whole world
 lat_min, lat_max = 18.0, 84.0
 lon_min, lon_max = -170.0, -50.0
 
 if use_bbox:
-    with st.sidebar.expander("Latitude & Longitude", expanded=True):
-        lat_min = st.number_input("Min Latitude", value=18.0, step=1.0)
-        lat_max = st.number_input("Max Latitude", value=84.0, step=1.0)
-        lon_min = st.number_input("Min Longitude", value=-170.0, step=1.0)
-        lon_max = st.number_input("Max Longitude", value=-50.0, step=1.0)
+    with st.sidebar.expander("Bounding Box", expanded=True):
+        
+        col_lat, col_lon = st.columns(2)
+        with col_lat:
+            lat_min = st.number_input("Min Lat", value=18.0, step=1.0)
+            lat_max = st.number_input("Max Lat", value=84.0, step=1.0)
+        with col_lon:
+            lon_min = st.number_input("Min Lon", value=-170.0, step=1.0)
+            lon_max = st.number_input("Max Lon", value=-50.0, step=1.0)
 
-# Download
-if view_mode == "Admin (Data Export)":
-    st.sidebar.markdown("### Download & Share")
-    csv = hotspots.to_csv(index=False).encode('utf-8')
-    st.sidebar.download_button(
-        label="Download Filtered Data (CSV)",
-        data=csv,
-        file_name="fire_data.csv",
-        mime="text/csv"
-    )
 
-# About
 st.sidebar.markdown("---")
 st.sidebar.markdown("### About")
-st.sidebar.info("This tool harmonizes MODIS and VIIRS satellite data to provide a continuous, sensor-agnostic view of fire activity across Canada and the US from 2001 to 2025.")
+st.sidebar.info("This tool harmonizes MODIS and VIIRS satellite data to provide a continuous view of fire activity.")
 
 # 4. FILTERING LOGIC
-if country_input == "Canada":
-    filtered_hotspots = hotspots[hotspots["grid_lat"] > 49.0]
-elif country_input == "United States":
-    filtered_hotspots = hotspots[hotspots["grid_lat"] <= 49.0]
+if country == "Canada":
+    region_df = hotspots[hotspots["grid_lat"] > 49.0]
 else:
-    filtered_hotspots = hotspots
+    region_df = hotspots[hotspots["grid_lat"] <= 49.0]
 
-# Apply bounding box filter
-filtered_hotspots = filtered_hotspots[
-    (filtered_hotspots["grid_lat"] >= lat_min) & (filtered_hotspots["grid_lat"] <= lat_max) &
-    (filtered_hotspots["grid_lon"] >= lon_min) & (filtered_hotspots["grid_lon"] <= lon_max)
-]
+
+if use_bbox:
+    region_df = region_df[
+        (region_df["grid_lat"] >= lat_min) & (region_df["grid_lat"] <= lat_max) &
+        (region_df["grid_lon"] >= lon_min) & (region_df["grid_lon"] <= lon_max)
+    ]
 
 # 5. MAIN DASHBOARD LAYOUT
 st.title("Harmonized Fire Hotspot Calendar")
-st.write(f"**Currently viewing:** {country_input}")
+st.write(f"**Currently viewing:** {country} | **Map Year:** {selected_year}")
 
 col1, col2 = st.columns([2, 1])
 
 with col1:
     st.subheader("Map")
-    if len(filtered_hotspots) > 0:
-        map_df = filtered_hotspots.sample(n=min(10000, len(filtered_hotspots)), random_state=42)
+  
+    map_data = region_df[region_df["year"] == selected_year]
+    
+    if len(map_data) > 0:
+       
+        map_df = map_data.sample(n=min(5000, len(map_data)), random_state=42)
         
-        # FIXED: Using OpenStreetMap for a standard world map without API key errors
+        
         m = folium.Map(location=[45, -100], zoom_start=3, tiles="OpenStreetMap")
         
         for _, row in map_df.iterrows():
@@ -154,23 +134,34 @@ with col1:
                 tooltip=f"Year: {row.year}<br>Fires: {row.harmonized_count}"
             ).add_to(m)
             
-        st_folium(m, height=500, use_container_width=True)
+        st_folium(m, height=450, use_container_width=True)
     else:
-        st.warning("No data available for the selected region.")
+        st.warning(f"No data available for {country} in {selected_year}.")
 
 with col2:
     st.subheader("Burning Calendar")
-    pivot_table = monthly.pivot(index="year", columns="month", values="harmonized_count")
+  
+    monthly_region = region_df.groupby(["year", "month"])["harmonized_count"].sum().reset_index()
+    pivot_table = monthly_region.pivot(index="year", columns="month", values="harmonized_count").fillna(0)
     
-    # FIXED: Red/Yellow palette only
+    # Yellow to Red palette only
     fig_calendar = px.imshow(
         pivot_table, 
         aspect="auto", 
-        color_continuous_scale="YlOrRd", # Yellow-Orange-Red
-        labels=dict(x="Month", y="Year", color="Fires")
+        color_continuous_scale="YlOrRd", 
+        labels=dict(x="Month", y="Year", color="Fire Intensity")
     )
+    
+   
+    year_index = list(pivot_table.index).index(selected_year)
+    fig_calendar.add_shape(
+        type="rect", x0=-0.5, x1=11.5, 
+        y0=year_index - 0.5, y1=year_index + 0.5, 
+        line=dict(color="red", width=3)
+    )
+
     fig_calendar.update_layout(
-        height=500, 
+        height=450, 
         margin=dict(l=0, r=0, t=10, b=0),
         paper_bgcolor="#F5F0E6",
         plot_bgcolor="#F5F0E6",
@@ -178,10 +169,10 @@ with col2:
     )
     st.plotly_chart(fig_calendar, use_container_width=True)
 
-# Bottom: Analytic Graph
+# Bottom: Analytic Graph (Shows all years)
 st.markdown("---")
 st.subheader("Analytic Graph: Yearly Trend")
-yearly_totals = filtered_hotspots.groupby("year")["harmonized_count"].sum().reset_index()
+yearly_totals = region_df.groupby("year")["harmonized_count"].sum().reset_index()
 
 fig_trend = px.line(
     yearly_totals, 
@@ -190,6 +181,15 @@ fig_trend = px.line(
     markers=True,
     labels={"year": "Year", "harmonized_count": "Total Hotspot Detections"},
     color_discrete_sequence=["#1E3B2F"] 
+)
+
+
+selected_count = yearly_totals[yearly_totals["year"] == selected_year]["harmonized_count"].values[0]
+fig_trend.add_annotation(
+    x=selected_year, y=selected_count,
+    text="▼", showarrow=False,
+    font=dict(color="red", size=20),
+    yshift=15 
 )
 
 fig_trend.update_layout(

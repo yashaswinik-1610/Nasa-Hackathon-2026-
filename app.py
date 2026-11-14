@@ -228,7 +228,7 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# Sidebar
+# Sidebar Filters
 available_years = [str(y) for y in sorted(hotspots["year"].unique(), reverse=True)]
 selected_year_str = st.sidebar.selectbox("Search Year", available_years)
 selected_year = int(selected_year_str)
@@ -295,52 +295,59 @@ else:
 
 st.sidebar.markdown("---")
 
+# Filter Data
 region_df = hotspots[
     (hotspots["grid_lat"] >= lat_min) & (hotspots["grid_lat"] <= lat_max) &
     (hotspots["grid_lon"] >= lon_min) & (hotspots["grid_lon"] <= lon_max)
 ]
 
-# ====================== FOLIUM SATELLITE MAP ======================
-map_data = region_df[region_df["year"] == selected_year]
+# ====================== DASHBOARD LAYOUT ======================
+# Two columns: Map (Left), Charts (Right Panel)
+col_map, col_charts = st.columns([1.8, 1])
 
-if len(map_data) > 0:
-    map_df = map_data.sample(n=min(5000, len(map_data)), random_state=42)
+# --- LEFT: MAP ---
+with col_map:
+    map_data = region_df[region_df["year"] == selected_year]
     
-    center_lat = (lat_min + lat_max) / 2
-    center_lon = (lon_min + lon_max) / 2
-    
-    m = folium.Map(
-        location=[center_lat, center_lon],
-        zoom_start=zoom_level,
-        tiles="Esri World Imagery",
-        control_scale=True
-    )
-    
-    for _, row in map_df.iterrows():
-        folium.CircleMarker(
-            location=[row.grid_lat, row.grid_lon],
-            radius=2.5,
-            color="red",
-            fill=True,
-            fill_color="red",
-            fill_opacity=0.85,
-            tooltip=(
-                f"Lat: {row.grid_lat:.3f}<br>"
-                f"Lon: {row.grid_lon:.3f}<br>"
-                f"Year: {int(row.year)}<br>"
-                f"Fires: {int(row.harmonized_count)}"
-            )
-        ).add_to(m)
+    if len(map_data) > 0:
+        map_df = map_data.sample(n=min(5000, len(map_data)), random_state=42)
         
-    st_folium(m, height=800, use_container_width=True, returned_objects=[])
-else:
-    st.warning(f"No data available for {region_name} in {selected_year}.")
+        center_lat = (lat_min + lat_max) / 2
+        center_lon = (lon_min + lon_max) / 2
+        
+        m = folium.Map(
+            location=[center_lat, center_lon],
+            zoom_start=zoom_level,
+            tiles="Esri World Imagery",
+            control_scale=True
+        )
+        
+        for _, row in map_df.iterrows():
+            folium.CircleMarker(
+                location=[row.grid_lat, row.grid_lon],
+                radius=2.5,
+                color="red",
+                fill=True,
+                fill_color="red",
+                fill_opacity=0.85,
+                tooltip=(
+                    f"Lat: {row.grid_lat:.3f}<br>"
+                    f"Lon: {row.grid_lon:.3f}<br>"
+                    f"Year: {int(row.year)}<br>"
+                    f"Fires: {int(row.harmonized_count)}"
+                )
+            ).add_to(m)
+            
+        # Map fills the height of the left column
+        st_folium(m, height=800, use_container_width=True, returned_objects=[])
+    else:
+        st.warning(f"No data available for {region_name} in {selected_year}.")
 
-# ====================== BURNING CALENDAR + ANALYTICS ======================
-st.markdown("---")
-col_cal, col_trend = st.columns([1, 1.4])
-
-with col_cal:
+# --- RIGHT: CHARTS PANEL ---
+with col_charts:
+    # 1. Burning Calendar
+    st.markdown("<h4 style='text-align: center; margin-top: 0;'>Burning Calendar</h4>", unsafe_allow_html=True)
+    
     monthly = region_df.groupby(["year", "month"])["harmonized_count"].sum().reset_index()
     all_years = list(range(2001, 2026))
     all_months = list(range(1, 13))
@@ -358,7 +365,7 @@ with col_cal:
         zmin=0,
         zmax=int(pivot.values.max()) if pivot.values.max() > 0 else 1,
         hovertemplate="Year: %{y}<br>Fires: %{z}<extra></extra>",
-        colorbar=dict(title="Intensity", thickness=14, len=0.75, tickformat=",d")
+        colorbar=dict(title="Intensity", thickness=10, len=0.8, tickformat=",d")
     ))
 
     year_index = list(pivot.index).index(selected_year)
@@ -370,37 +377,34 @@ with col_cal:
     )
 
     fig_calendar.update_layout(
-        height=480,
+        height=380, # Reduced to fit in the right panel alongside the graph
         paper_bgcolor="#F5F0E6",
         plot_bgcolor="#F5F0E6",
         font=dict(family="Times New Roman", color="#1E3B2F"),
-        # ADDED X AND Y AXIS TITLES HERE
         xaxis=dict(
             side="top", 
             showgrid=False, 
             zeroline=False, 
-            tickfont=dict(size=11, color="#1E3B2F"),
+            tickfont=dict(size=10, color="#1E3B2F"),
             title="<b>Month</b>"
         ),
         yaxis=dict(
             autorange="reversed", 
             showgrid=False, 
             zeroline=False, 
-            tickfont=dict(size=12, color="#1E3B2F"), 
+            tickfont=dict(size=11, color="#1E3B2F"), 
             type="category",
             title="<b>Year</b>"
         ),
-        margin=dict(l=60, r=10, t=50, b=15),
+        margin=dict(l=50, r=10, t=40, b=15),
         dragmode="zoom"
     )
     
-    st.plotly_chart(
-        fig_calendar, 
-        use_container_width=True, 
-        config={'displayModeBar': True, 'scrollZoom': True}
-    )
+    st.plotly_chart(fig_calendar, use_container_width=True, config={'displayModeBar': False})
 
-with col_trend:
+    # 2. Analytics Graph
+    st.markdown("<h4 style='text-align: center; margin-top: 10px;'>Analytics Graph</h4>", unsafe_allow_html=True)
+    
     yearly_totals = region_df.groupby("year")["harmonized_count"].sum().reset_index()
     yearly_totals["year"] = yearly_totals["year"].astype(int)
     yearly_totals["harmonized_count"] = yearly_totals["harmonized_count"].astype(int)
@@ -417,7 +421,7 @@ with col_trend:
         fill='tozeroy',
         fillcolor='rgba(30, 59, 47, 0.15)',
         line=dict(width=3),
-        marker=dict(size=8, color="#1E3B2F")
+        marker=dict(size=6, color="#1E3B2F")
     )
 
     selected_count = 0
@@ -429,8 +433,8 @@ with col_trend:
         y=selected_count,
         text="▼",
         showarrow=False,
-        font=dict(color="red", size=22),
-        yshift=14
+        font=dict(color="red", size=20),
+        yshift=12
     )
 
     fig_trend.update_layout(
@@ -438,9 +442,9 @@ with col_trend:
         yaxis_title="<b>Harmonized Count</b>",
         paper_bgcolor="#F5F0E6",
         plot_bgcolor="#F5F0E6",
-        font=dict(family="Times New Roman", color="#1E3B2F", size=13),
-        margin=dict(l=60, r=25, t=30, b=40),
-        height=480,
+        font=dict(family="Times New Roman", color="#1E3B2F", size=12),
+        margin=dict(l=55, r=20, t=30, b=30),
+        height=380, # Matches the calendar height
         xaxis=dict(
             showgrid=True, 
             gridcolor='#C8B48A', 
@@ -448,7 +452,6 @@ with col_trend:
             linewidth=2, 
             linecolor='#1E3B2F', 
             mirror=True,
-            rangeslider=dict(visible=True),
             type="linear"
         ),
         yaxis=dict(
@@ -463,8 +466,4 @@ with col_trend:
         dragmode="pan"
     )
     
-    st.plotly_chart(
-        fig_trend, 
-        use_container_width=True, 
-        config={'displayModeBar': True, 'scrollZoom': True}
-    )
+    st.plotly_chart(fig_trend, use_container_width=True, config={'displayModeBar': False})

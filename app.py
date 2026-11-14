@@ -27,7 +27,6 @@ custom_css = """
     footer {visibility: hidden;}
     
     /* --- MAIN CONTAINER PADDING --- */
-    /* Push content down so it doesn't hide under the fixed red header */
     .block-container {
         padding-top: 100px !important; 
         padding-left: 20px !important;
@@ -46,7 +45,7 @@ custom_css = """
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 0px 25px 0px 75px !important; /* 75px left space for hamburger */
+        padding: 0px 25px 0px 75px !important; 
         box-shadow: 0 2px 8px rgba(0,0,0,0.25);
         z-index: 999999 !important;
     }
@@ -104,7 +103,7 @@ custom_css = """
         position: fixed !important;
         top: 22px !important;      
         left: 20px !important;     
-        z-index: 1000000 !important; /* Above the red header */
+        z-index: 1000000 !important; 
         background: transparent !important;
         border: none !important;
         width: 45px !important;
@@ -138,7 +137,7 @@ custom_css = """
     [data-testid="stSidebar"] {
         background-color: #1E3B2F !important;
         height: 82vh !important;
-        margin-top: 95px !important; /* Starts below the fixed header */
+        margin-top: 95px !important; 
         margin-left: 10px !important;
         border-radius: 15px !important;
         border: 1px solid #7F8C6A !important;
@@ -311,7 +310,6 @@ if len(map_data) > 0:
     center_lat = (lat_min + lat_max) / 2
     center_lon = (lon_min + lon_max) / 2
     
-    # Using Esri World Imagery for the satellite view
     m = folium.Map(
         location=[center_lat, center_lon],
         zoom_start=zoom_level,
@@ -335,7 +333,6 @@ if len(map_data) > 0:
             )
         ).add_to(m)
         
-    # returned_objects=[] prevents the infinite loading loop on Posit
     st_folium(m, height=600, use_container_width=True, returned_objects=[])
 else:
     st.warning(f"No data available for {region_name} in {selected_year}.")
@@ -382,9 +379,16 @@ with col_cal:
         font=dict(family="Times New Roman", color="#1E3B2F"),
         xaxis=dict(side="top", showgrid=False, zeroline=False, tickfont=dict(size=11, color="#1E3B2F")),
         yaxis=dict(autorange="reversed", showgrid=False, zeroline=False, tickfont=dict(size=12, color="#1E3B2F"), type="category"),
-        margin=dict(l=50, r=10, t=40, b=15)
+        margin=dict(l=50, r=10, t=40, b=15),
+        dragmode="zoom" # Enables click-and-drag box zoom
     )
-    st.plotly_chart(fig_calendar, use_container_width=True)
+    
+    # Config enables scroll zoom and the modebar
+    st.plotly_chart(
+        fig_calendar, 
+        use_container_width=True, 
+        config={'displayModeBar': True, 'scrollZoom': True}
+    )
 
 with col_trend:
     st.markdown(f"<h3 style='text-align: center; margin-bottom: 8px;'>Analytics Graph - {region_name}</h3>", unsafe_allow_html=True)
@@ -429,7 +433,22 @@ with col_trend:
         font=dict(family="Times New Roman", color="#1E3B2F", size=13),
         margin=dict(l=55, r=25, t=30, b=40),
         height=480,
-        xaxis=dict(showgrid=True, gridcolor='#C8B48A', showline=True, linewidth=2, linecolor='#1E3B2F', mirror=True),
-        yaxis=dict(showgrid=True, gridcolor='#C8B48A', showline=True, linewidth=2, linecolor='#1E3B2F', mirror=True, tickformat=",d")
+        xaxis=dict(
+            showgrid=True, 
+            gridcolor='#C8B48A', 
+            showline=True, 
+            linewidth=2, 
+            linecolor='#1E3B2F', 
+            mirror=True,
+            rangeslider=dict(visible=True), # Adds the motion pad slider
+            type="linear"
+        ),
+        yaxis=dict(showgrid=True, gridcolor='#C8B48A', showline=True, linewidth=2, linecolor='#1E3B2F', mirror=True, tickformat=",d"),
+        dragmode="pan" # Enables click-and-drag panning
     )
-    st.plotly_chart(fig_trend, use_container_width=True)
+    
+    st.plotly_chart(
+        fig_trend, 
+        use_container_width=True, 
+        config={'displayModeBar': True, 'scrollZoom': True}
+    )

@@ -46,34 +46,38 @@ custom_css = """
     }
     
     /* --- FIXING THE TOGGLE BUTTON (HAMBURGER) --- */
-    /* 1. Hide all default text and SVGs inside the toggle buttons */
+    /* 1. Hide default elements */
+    [data-testid="stSidebarCollapseButton"] svg,
+    [data-testid="collapsedControl"] svg,
+    [data-testid="stSidebarCollapseButton"] span,
+    [data-testid="collapsedControl"] span {
+        display: none !important;
+    }
+    
+    /* 2. Position the button exactly inside the left side of the header */
     [data-testid="stSidebarCollapseButton"],
     [data-testid="collapsedControl"] {
-        font-size: 0px !important; /* Hides the default ligature text */
+        position: fixed !important;
+        top: 20px !important;      /* Centers it vertically in the 75px header */
+        left: 20px !important;     /* Puts it next to the website name */
+        z-index: 9999999 !important;
         background: transparent !important;
         border: none !important;
-        width: 50px !important;
-        height: 50px !important;
-        position: fixed !important;
-        top: 12px !important;
-        left: 15px !important;
-        z-index: 999999 !important;
+        width: 45px !important;
+        height: 45px !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
         cursor: pointer !important;
+        color: white !important;
+        border-radius: 8px !important;
     }
     
-    [data-testid="stSidebarCollapseButton"] > *,
-    [data-testid="collapsedControl"] > * {
-        display: none !important;
-    }
-    
-    /* 2. Inject the custom white hamburger icon */
+    /* 3. Inject the custom white hamburger icon */
     [data-testid="stSidebarCollapseButton"]::after,
     [data-testid="collapsedControl"]::after {
         content: "☰" !important;
-        font-size: 34px !important;
+        font-size: 32px !important;
         color: white !important;
         font-family: Arial, sans-serif !important;
         font-weight: bold !important;
@@ -85,7 +89,6 @@ custom_css = """
     [data-testid="stSidebarCollapseButton"]:hover,
     [data-testid="collapsedControl"]:hover {
         background-color: rgba(255,255,255,0.15) !important;
-        border-radius: 8px !important;
     }
     
     /* Native Header Cleanup */
@@ -114,7 +117,7 @@ custom_css = """
     /* --- CUSTOM HEADER --- */
     .firms-header {
         background-color: #c90000;
-        padding: 0px 25px 0px 75px; /* Left padding makes room for the hamburger */
+        padding: 0px 25px 0px 75px; /* Left padding creates space for the hamburger */
         display: flex;
         align-items: center;
         justify-content: space-between;

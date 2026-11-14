@@ -122,26 +122,21 @@ if use_bbox:
     ]
 
 # 6. MAIN DASHBOARD LAYOUT (Map & Calendar)
-col1, col2 = st.columns([2, 1.2])
+col1, col2 = st.columns([1.5, 1])
 
 with col1:
-    # Map Data filtered by selected year
+    st.markdown("<h3 style='text-align: center;'>Map</h3>", unsafe_allow_html=True)
     map_data = region_df[region_df["year"] == selected_year]
     
     if len(map_data) > 0:
         map_df = map_data.sample(n=min(10000, len(map_data)), random_state=42)
         
-        # --- FIX APPLIED HERE ---
         fig_map = px.scatter_map(
             map_df,
             lat="grid_lat",
             lon="grid_lon",
             hover_name="year",
-            hover_data={
-                "grid_lat": ":.3f", 
-                "grid_lon": ":.3f", 
-                "harmonized_count": True
-            },
+            hover_data={"grid_lat": ":.3f", "grid_lon": ":.3f", "harmonized_count": True},
             color_discrete_sequence=["#ff7800"],
             zoom=3,
             center={"lat": 45, "lon": -100},
@@ -159,24 +154,35 @@ with col1:
 with col2:
     st.markdown("<h3 style='text-align: center;'>Burning Calendar</h3>", unsafe_allow_html=True)
     
-    # Aggregate data
+    # Generate full matrix to ensure no gaps
     monthly = region_df.groupby(["year", "month"])["harmonized_count"].sum().reset_index()
-    pivot_table = monthly.pivot(index="year", columns="month", values="harmonized_count").fillna(0)
+    
+    # Create a complete grid of all years and months
+    all_years = list(range(2001, 2026))
+    all_months = list(range(1, 13))
+    
+    # Pivot and fill missing values with 0
+    pivot_table = monthly.pivot(index="year", columns="month", values="harmonized_count")
+    pivot_table = pivot_table.reindex(index=all_years, columns=all_months).fillna(0)
+    
+    # Convert year index to string so it acts as a categorical axis (fixes the stretching)
+    y_labels = [str(y) for y in pivot_table.index]
     
     # Build GitHub-style Heatmap
     fig_calendar = go.Figure(data=go.Heatmap(
         z=pivot_table.values,
-        x=pivot_table.columns, 
-        y=pivot_table.index,   
+        x=["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+        y=y_labels,   
         colorscale="YlOrRd", 
-        xgap=2,
-        ygap=2,
-        hoverongaps=False,
-        colorbar=dict(title="Intensity", thickness=15)
+        xgap=2, 
+        ygap=2, 
+        zmin=0,
+        zmax=float(pivot_table.values.max()),
+        colorbar=dict(title="Intensity", thickness=15, len=0.8)
     ))
 
     # Highlight selected year
-    year_index = list(pivot_table.index).index(selected_year)
+    year_index = y_labels.index(str(selected_year))
     fig_calendar.add_shape(
         type="rect", 
         x0=-0.5, x1=11.5, 
@@ -190,26 +196,25 @@ with col2:
         plot_bgcolor="#F5F0E6",
         font=dict(family="Times New Roman", color="#1E3B2F"),
         xaxis=dict(
-            tickmode="array",
-            tickvals=list(range(1, 13)),
-            ticktext=["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
             side="top",
             showgrid=False,
-            zeroline=False
+            zeroline=False,
+            tickfont=dict(size=10)
         ),
         yaxis=dict(
             autorange="reversed",
             showgrid=False,
             zeroline=False,
-            title="Year"
+            tickfont=dict(size=10)
         ),
-        margin=dict(l=50, r=10, t=40, b=20)
+        margin=dict(l=40, r=10, t=40, b=10)
     )
     st.plotly_chart(fig_calendar, use_container_width=True)
 
 # 7. ANALYTICS GRAPH
 if show_graph:
     st.markdown("---")
+    st.markdown("<h3 style='text-align: center;'>Yearly Fire Trend</h3>", unsafe_allow_html=True)
     yearly_totals = region_df.groupby("year")["harmonized_count"].sum().reset_index()
 
     fig_trend = px.line(
@@ -220,15 +225,17 @@ if show_graph:
         color_discrete_sequence=["#1E3B2F"] 
     )
 
-    # Explicitly naming the axes clearly
+    # Make the line thicker so it's not "meak"
+    fig_trend.update_traces(line=dict(width=3), marker=dict(size=8))
+
     fig_trend.update_layout(
-        title="Yearly Fire Trend",
-        xaxis_title="Year",
-        yaxis_title="Total Fire Detections",
+        xaxis_title="<b>Year</b>",
+        yaxis_title="<b>Total Fire Detections</b>",
         paper_bgcolor="#F5F0E6",
         plot_bgcolor="#F5F0E6",
         font=dict(family="Times New Roman", color="#1E3B2F", size=14),
-        margin=dict(l=50, r=20, t=50, b=20)
+        margin=dict(l=50, r=20, t=30, b=20),
+        height=400
     )
 
     # Add red arrow
@@ -238,7 +245,7 @@ if show_graph:
         y=selected_count,
         text="▼", 
         showarrow=False,
-        font=dict(color="red", size=20),
+        font=dict(color="red", size=24),
         yshift=15
     )
 

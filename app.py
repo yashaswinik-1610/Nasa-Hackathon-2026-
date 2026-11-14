@@ -48,13 +48,17 @@ custom_css = """
 """
 st.markdown(custom_css, unsafe_allow_html=True)
 
-# 2. LOAD DATA
+# 2. LOAD DATA (Force year and count to be integers)
 @st.cache_data
 def load_data():
     parquet_file = "Processed Data/harmonized_hotspots_canada_us.parquet"
     cols = ["grid_lat", "grid_lon", "year", "month", "harmonized_count"]
     try:
-        return pd.read_parquet(parquet_file, columns=cols)
+        df = pd.read_parquet(parquet_file, columns=cols)
+        # Force integer types to remove .0 decimals
+        df["year"] = df["year"].astype(int)
+        df["harmonized_count"] = df["harmonized_count"].astype(int)
+        return df
     except Exception as e:
         st.error(f"Error loading data: {e}")
         st.stop()
@@ -144,7 +148,12 @@ with col1:
                 fill=True, 
                 fill_color="red",  
                 fill_opacity=0.9,
-                tooltip=f"Lat: {row.grid_lat:.3f}<br>Lon: {row.grid_lon:.3f}<br>Year: {row.year}<br>Fires: {row.harmonized_count}"
+                tooltip=(
+                    f"Lat: {row.grid_lat:.3f}<br>"
+                    f"Lon: {row.grid_lon:.3f}<br>"
+                    f"Year: {int(row.year)}<br>"
+                    f"Fires: {int(row.harmonized_count)}"
+                )
             ).add_to(m)
             
         st_folium(m, height=500, use_container_width=True)
@@ -154,14 +163,15 @@ with col1:
 with col2:
     st.markdown("<h3 style='text-align: center;'>Burning Calendar</h3>", unsafe_allow_html=True)
     
-    # Generate complete matrix to ensure no gaps
+    # Generate complete matrix
     monthly = region_df.groupby(["year", "month"])["harmonized_count"].sum().reset_index()
     
     all_years = list(range(2001, 2026))
     all_months = list(range(1, 13))
     
+    # Reindex and force to integer
     pivot = monthly.pivot(index="year", columns="month", values="harmonized_count")
-    pivot = pivot.reindex(index=all_years, columns=all_months).fillna(0)
+    pivot = pivot.reindex(index=all_years, columns=all_months).fillna(0).astype(int)
     
     # Build GitHub-style Heatmap (Horizontal)
     fig_calendar = go.Figure(data=go.Heatmap(
@@ -169,17 +179,18 @@ with col2:
         x=["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
         y=[str(y) for y in pivot.index],
         colorscale="YlOrRd", 
-        xgap=3, # Thicker gaps for GitHub look
+        xgap=3,
         ygap=3,
         zmin=0,
-        zmax=float(pivot.values.max()),
-        # Put the intensity strip right next to the calendar
+        zmax=int(pivot.values.max()),
+        hovertemplate="Year: %{y}<br>Month: %{x}<br>Fires: %{z}<extra></extra>",
         colorbar=dict(
             title="Intensity", 
             thickness=15, 
             len=0.8,
-            x=1.05, # Push it slightly to the right
-            y=0.5
+            x=1.05,
+            y=0.5,
+            tickformat=",d" # Force whole numbers on the color strip
         )
     ))
 
@@ -198,17 +209,18 @@ with col2:
         plot_bgcolor="#F5F0E6",
         font=dict(family="Times New Roman", color="#1E3B2F"),
         xaxis=dict(
-            side="top", # Months on top
+            side="top",
             showgrid=False,
             zeroline=False,
             tickfont=dict(size=11)
         ),
         yaxis=dict(
-            autorange="reversed", # Years go top-down
+            autorange="reversed",
             showgrid=False,
             zeroline=False,
             tickfont=dict(size=11),
-            title="Year"
+            title="Year",
+            type="category" # Force axis to treat years as text, not decimals
         ),
         margin=dict(l=50, r=10, t=40, b=20)
     )
@@ -219,6 +231,8 @@ if show_graph:
     st.markdown("---")
     st.markdown("<h3 style='text-align: center;'>Yearly Fire Trend</h3>", unsafe_allow_html=True)
     yearly_totals = region_df.groupby("year")["harmonized_count"].sum().reset_index()
+    yearly_totals["year"] = yearly_totals["year"].astype(int)
+    yearly_totals["harmonized_count"] = yearly_totals["harmonized_count"].astype(int)
 
     # Bold Area Chart
     fig_trend = px.area(
@@ -240,10 +254,11 @@ if show_graph:
         plot_bgcolor="#F5F0E6",
         font=dict(family="Times New Roman", color="#1E3B2F", size=14),
         margin=dict(l=50, r=20, t=30, b=20),
-        height=350 # Kept compact so it doesn't stretch the page
+        height=350,
+        yaxis=dict(tickformat=",d") # Force whole numbers on Y axis
     )
 
-    selected_count = yearly_totals[yearly_totals["year"] == selected_year]["harmonized_count"].values[0]
+    selected_count = int(yearly_totals[yearly_totals["year"] == selected_year]["harmonized_count"].values[0])
     fig_trend.add_annotation(
         x=selected_year, 
         y=selected_count,

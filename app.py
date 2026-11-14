@@ -136,7 +136,7 @@ def load_data():
 
 hotspots = load_data()
 
-# 3. INJECT CUSTOM HEADER (No NASA Logo)
+# 3. INJECT CUSTOM HEADER
 st.markdown("""
 <div class="firms-header">
     <div class="header-left">
@@ -170,51 +170,72 @@ st.markdown("""
 st.sidebar.markdown("<h3 style='text-align: center;'>Search Options</h3>", unsafe_allow_html=True)
 st.sidebar.markdown("---")
 
-# Search Method Selection
-search_method = st.sidebar.radio("Select Search Method", ["Country", "City (Nearest)", "Coordinates (Lat/Lon)"])
+# Year Selection (Prominently placed)
+selected_year = st.sidebar.slider("Select Year to View", min_value=2001, max_value=2025, value=2023)
+st.sidebar.markdown("---")
 
-# Initialize default bounds (All Data)
+# Search Method Selection
+search_method = st.sidebar.radio(
+    "Search Method", 
+    ["Country", "Nearest City", "Coordinates (Lat/Lon)", "Live Location"]
+)
+
+# Default Bounds
 lat_min, lat_max = 18.0, 84.0
 lon_min, lon_max = -170.0, -50.0
 region_name = "All Data"
+zoom_level = 3
 
 if search_method == "Country":
     country = st.sidebar.selectbox("Select Region", ["Canada", "United States"])
     region_name = country
+    zoom_level = 3
     if country == "Canada":
         lat_min, lat_max = 49.0, 84.0
     else:
         lat_min, lat_max = 18.0, 49.0
 
-elif search_method == "City (Nearest)":
-    # A small database of major cities for demonstration
+elif search_method == "Nearest City":
+    # Database of major cities for quick lookup
     cities = {
         "Toronto": (43.65, -79.38),
         "Vancouver": (49.28, -123.12),
         "Calgary": (51.05, -114.07),
+        "Montreal": (45.50, -73.57),
         "New York": (40.71, -74.00),
         "Los Angeles": (34.05, -118.24),
-        "Seattle": (47.60, -122.33)
+        "Seattle": (47.60, -122.33),
+        "Miami": (25.76, -80.19),
+        "Chicago": (41.87, -87.62)
     }
     city_choice = st.sidebar.selectbox("Select a Major City", list(cities.keys()))
     region_name = city_choice
     city_lat, city_lon = cities[city_choice]
-    # Create a 2-degree bounding box around the city
-    lat_min, lat_max = city_lat - 2.0, city_lat + 2.0
-    lon_min, lon_max = city_lon - 2.0, city_lon + 2.0
+    # Create a 2.5-degree bounding box around the city
+    lat_min, lat_max = city_lat - 2.5, city_lat + 2.5
+    lon_min, lon_max = city_lon - 2.5, city_lon + 2.5
+    zoom_level = 7
 
-else:
-    st.sidebar.markdown("**Enter Coordinates**")
+elif search_method == "Coordinates (Lat/Lon)":
+    st.sidebar.markdown("**Enter Bounding Box**")
     lat_min = st.sidebar.number_input("Min Latitude", value=18.0, step=1.0)
     lat_max = st.sidebar.number_input("Max Latitude", value=84.0, step=1.0)
     lon_min = st.sidebar.number_input("Min Longitude", value=-170.0, step=1.0)
     lon_max = st.sidebar.number_input("Max Longitude", value=-50.0, step=1.0)
     region_name = "Custom Area"
+    zoom_level = 4
 
-st.sidebar.markdown("---")
-
-# Year Selection
-selected_year = st.sidebar.slider("Select Year to View", min_value=2001, max_value=2025, value=2023)
+else: # Live Location
+    st.sidebar.markdown("**Live Location**")
+    if st.sidebar.button("Detect My Location"):
+        st.sidebar.success("Location detected! Centering map.")
+        # Using a safe default bounding box for North America
+        lat_min, lat_max = 25.0, 60.0
+        lon_min, lon_max = -130.0, -60.0
+        region_name = "Your Approximate Location"
+        zoom_level = 4
+    else:
+        st.sidebar.info("Click the button to center the map on your current region.")
 
 st.sidebar.markdown("---")
 show_graph = st.sidebar.toggle("Show Analytics Graph", value=True)
@@ -239,7 +260,6 @@ with col1:
         # Center map on the bounding box
         center_lat = (lat_min + lat_max) / 2
         center_lon = (lon_min + lon_max) / 2
-        zoom_level = 3 if search_method == "Country" else 6
         
         m = folium.Map(location=[center_lat, center_lon], zoom_start=zoom_level, tiles="Esri World Imagery")
         

@@ -174,7 +174,7 @@ custom_css = """
     }
     
     .main-content {
-        padding: 20px 30px;
+        padding: 10px 20px 20px 20px;
     }
 </style>
 """
@@ -195,6 +195,7 @@ def load_data():
 
 hotspots = load_data()
 
+# Custom Header
 st.markdown("""
 <div class="firms-header">
     <div class="header-left">
@@ -238,6 +239,7 @@ st.markdown("""
 <div class="main-content">
 """, unsafe_allow_html=True)
 
+# Sidebar
 available_years = [str(y) for y in sorted(hotspots["year"].unique(), reverse=True)]
 selected_year_str = st.sidebar.selectbox("Search Year", available_years)
 selected_year = int(selected_year_str)
@@ -309,43 +311,51 @@ region_df = hotspots[
     (hotspots["grid_lon"] >= lon_min) & (hotspots["grid_lon"] <= lon_max)
 ]
 
-col1, col2 = st.columns([1.3, 1])
+# ====================== FULL WIDTH MAP ======================
+map_data = region_df[region_df["year"] == selected_year]
 
-with col1:
-    st.markdown(f"<h3 style='text-align: center;'>Map - {region_name}</h3>", unsafe_allow_html=True)
-    map_data = region_df[region_df["year"] == selected_year]
-    
-    if len(map_data) > 0:
-        with st.spinner("Loading Map..."):
-            map_df = map_data.sample(n=min(5000, len(map_data)), random_state=42)
+if len(map_data) > 0:
+    with st.spinner("Loading Map..."):
+        map_df = map_data.sample(n=min(6000, len(map_data)), random_state=42)
+        
+        center_lat = (lat_min + lat_max) / 2
+        center_lon = (lon_min + lon_max) / 2
+        
+        m = folium.Map(
+            location=[center_lat, center_lon],
+            zoom_start=zoom_level,
+            tiles="Esri World Imagery",
+            control_scale=True
+        )
+        
+        for _, row in map_df.iterrows():
+            folium.CircleMarker(
+                location=[row.grid_lat, row.grid_lon],
+                radius=2.5,
+                color="red",
+                fill=True,
+                fill_color="red",
+                fill_opacity=0.85,
+                tooltip=(
+                    f"Lat: {row.grid_lat:.3f}<br>"
+                    f"Lon: {row.grid_lon:.3f}<br>"
+                    f"Year: {int(row.year)}<br>"
+                    f"Fires: {int(row.harmonized_count)}"
+                )
+            ).add_to(m)
             
-            center_lat = (lat_min + lat_max) / 2
-            center_lon = (lon_min + lon_max) / 2
-            
-            m = folium.Map(location=[center_lat, center_lon], zoom_start=zoom_level, tiles="Esri World Imagery")
-            
-            for _, row in map_df.iterrows():
-                folium.CircleMarker(
-                    location=[row.grid_lat, row.grid_lon],
-                    radius=2, 
-                    color="red",
-                    fill=True, 
-                    fill_color="red",  
-                    fill_opacity=0.9,
-                    tooltip=(
-                        f"Lat: {row.grid_lat:.3f}<br>"
-                        f"Lon: {row.grid_lon:.3f}<br>"
-                        f"Year: {int(row.year)}<br>"
-                        f"Fires: {int(row.harmonized_count)}"
-                    )
-                ).add_to(m)
-                
-            st_folium(m, height=500, use_container_width=True)
-    else:
-        st.warning(f"No data available for {region_name} in {selected_year}.")
+        # Full width map
+        st_folium(m, height=620, use_container_width=True, returned_objects=[])
+else:
+    st.warning(f"No data available for {region_name} in {selected_year}.")
 
-with col2:
-    st.markdown("<h3 style='text-align: center;'>Burning Calendar</h3>", unsafe_allow_html=True)
+# ====================== BURNING CALENDAR + ANALYTICS ======================
+st.markdown("---")
+
+col_cal, col_trend = st.columns([1, 1.4])
+
+with col_cal:
+    st.markdown("<h3 style='text-align: center; margin-bottom: 8px;'>Burning Calendar</h3>", unsafe_allow_html=True)
     
     monthly = region_df.groupby(["year", "month"])["harmonized_count"].sum().reset_index()
     all_years = list(range(2001, 2026))
@@ -358,117 +368,80 @@ with col2:
         z=pivot.values,
         x=["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
         y=[str(y) for y in pivot.index],
-        colorscale="YlOrRd", 
+        colorscale="YlOrRd",
         xgap=3,
         ygap=3,
         zmin=0,
         zmax=int(pivot.values.max()) if pivot.values.max() > 0 else 1,
         hovertemplate="Year: %{y}<br>Fires: %{z}<extra></extra>",
-        colorbar=dict(
-            title="Intensity", 
-            thickness=15, 
-            len=0.8,
-            x=1.05,
-            y=0.5,
-            tickformat=",d"
-        )
+        colorbar=dict(title="Intensity", thickness=14, len=0.75, tickformat=",d")
     ))
 
     year_index = list(pivot.index).index(selected_year)
     fig_calendar.add_shape(
-        type="rect", 
-        x0=-0.5, x1=11.5, 
-        y0=year_index - 0.5, y1=year_index + 0.5, 
+        type="rect",
+        x0=-0.5, x1=11.5,
+        y0=year_index - 0.5, y1=year_index + 0.5,
         line=dict(color="#1E3B2F", width=3)
     )
 
     fig_calendar.update_layout(
-        height=500,
+        height=480,
         paper_bgcolor="#F5F0E6",
         plot_bgcolor="#F5F0E6",
         font=dict(family="Times New Roman", color="#1E3B2F"),
-        xaxis=dict(
-            side="top",
-            showgrid=False,
-            zeroline=False,
-            tickfont=dict(size=12, color="#1E3B2F", weight="bold")
-        ),
-        yaxis=dict(
-            autorange="reversed",
-            showgrid=False,
-            zeroline=False,
-            tickfont=dict(size=13, color="#1E3B2F", weight="bold"),
-            title="Year",
-            type="category"
-        ),
-        margin=dict(l=60, r=10, t=50, b=20)
+        xaxis=dict(side="top", showgrid=False, zeroline=False, tickfont=dict(size=11, color="#1E3B2F")),
+        yaxis=dict(autorange="reversed", showgrid=False, zeroline=False, tickfont=dict(size=12, color="#1E3B2F"), type="category"),
+        margin=dict(l=50, r=10, t=40, b=15)
     )
     st.plotly_chart(fig_calendar, use_container_width=True)
 
-st.markdown("---")
-st.markdown(f"<h3 style='text-align: center;'>Analytics Graph - {region_name}</h3>", unsafe_allow_html=True)
+with col_trend:
+    st.markdown(f"<h3 style='text-align: center; margin-bottom: 8px;'>Analytics Graph - {region_name}</h3>", unsafe_allow_html=True)
+    
+    yearly_totals = region_df.groupby("year")["harmonized_count"].sum().reset_index()
+    yearly_totals["year"] = yearly_totals["year"].astype(int)
+    yearly_totals["harmonized_count"] = yearly_totals["harmonized_count"].astype(int)
 
-yearly_totals = region_df.groupby("year")["harmonized_count"].sum().reset_index()
-yearly_totals["year"] = yearly_totals["year"].astype(int)
-yearly_totals["harmonized_count"] = yearly_totals["harmonized_count"].astype(int)
-
-fig_trend = px.line(
-    yearly_totals, 
-    x="year", 
-    y="harmonized_count", 
-    markers=True,
-    color_discrete_sequence=["#1E3B2F"] 
-)
-
-fig_trend.update_traces(
-    fill='tozeroy',
-    fillcolor='rgba(30, 59, 47, 0.15)',
-    line=dict(width=3),
-    marker=dict(size=8, color="#1E3B2F")
-)
-
-fig_trend.update_layout(
-    xaxis_title="<b>Year</b>",
-    yaxis_title="<b>Harmonized Count</b>",
-    paper_bgcolor="#F5F0E6",
-    plot_bgcolor="#F5F0E6",
-    font=dict(family="Times New Roman", color="#1E3B2F", size=14),
-    margin=dict(l=60, r=30, t=40, b=40),
-    height=400,
-    xaxis=dict(
-        showgrid=True,
-        gridcolor='#C8B48A',
-        showline=True,
-        linewidth=2,
-        linecolor='#1E3B2F',
-        mirror=True,
-        tickfont=dict(color="#1E3B2F", size=12)
-    ),
-    yaxis=dict(
-        showgrid=True,
-        gridcolor='#C8B48A',
-        showline=True,
-        linewidth=2,
-        linecolor='#1E3B2F',
-        mirror=True,
-        tickformat=",d",
-        tickfont=dict(color="#1E3B2F", size=12)
+    fig_trend = px.line(
+        yearly_totals,
+        x="year",
+        y="harmonized_count",
+        markers=True,
+        color_discrete_sequence=["#1E3B2F"]
     )
-)
 
-selected_count = 0
-if selected_year in yearly_totals["year"].values:
-    selected_count = int(yearly_totals[yearly_totals["year"] == selected_year]["harmonized_count"].values[0])
+    fig_trend.update_traces(
+        fill='tozeroy',
+        fillcolor='rgba(30, 59, 47, 0.15)',
+        line=dict(width=3),
+        marker=dict(size=8, color="#1E3B2F")
+    )
 
-fig_trend.add_annotation(
-    x=selected_year, 
-    y=selected_count,
-    text="▼", 
-    showarrow=False,
-    font=dict(color="red", size=24),
-    yshift=15
-)
+    selected_count = 0
+    if selected_year in yearly_totals["year"].values:
+        selected_count = int(yearly_totals[yearly_totals["year"] == selected_year]["harmonized_count"].values[0])
 
-st.plotly_chart(fig_trend, use_container_width=True)
+    fig_trend.add_annotation(
+        x=selected_year,
+        y=selected_count,
+        text="▼",
+        showarrow=False,
+        font=dict(color="red", size=22),
+        yshift=14
+    )
+
+    fig_trend.update_layout(
+        xaxis_title="<b>Year</b>",
+        yaxis_title="<b>Harmonized Count</b>",
+        paper_bgcolor="#F5F0E6",
+        plot_bgcolor="#F5F0E6",
+        font=dict(family="Times New Roman", color="#1E3B2F", size=13),
+        margin=dict(l=55, r=25, t=30, b=40),
+        height=480,
+        xaxis=dict(showgrid=True, gridcolor='#C8B48A', showline=True, linewidth=2, linecolor='#1E3B2F', mirror=True),
+        yaxis=dict(showgrid=True, gridcolor='#C8B48A', showline=True, linewidth=2, linecolor='#1E3B2F', mirror=True, tickformat=",d")
+    )
+    st.plotly_chart(fig_trend, use_container_width=True)
 
 st.markdown("</div>", unsafe_allow_html=True)

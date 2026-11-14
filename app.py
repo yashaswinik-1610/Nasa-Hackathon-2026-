@@ -7,7 +7,7 @@ import folium
 from streamlit_folium import st_folium
 
 # 1. PAGE CONFIGURATION & CUSTOM CSS
-st.set_page_config(page_title="Harmonized Fire Calendar", layout="wide")
+st.set_page_config(page_title="FIRMS Fire Calendar", layout="wide", initial_sidebar_state="expanded")
 
 custom_css = """
 <style>
@@ -44,6 +44,78 @@ custom_css = """
     [data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2, [data-testid="stSidebar"] h3, [data-testid="stSidebar"] p, [data-testid="stSidebar"] label {
         color: #F5F0E6 !important;
     }
+    
+    /* --- CUSTOM FIRMS HEADER CSS --- */
+    .block-container {padding-top: 0rem !important;}
+    
+    .firms-header {
+        background-color: #c90000;
+        padding: 0px 20px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        color: white;
+        font-family: 'Arial', sans-serif;
+        height: 70px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        margin-bottom: 20px;
+    }
+    .header-left {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+    .hamburger {
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+    }
+    .logo-area {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    .logo-circle {
+        width: 45px;
+        height: 45px;
+        border: 2px solid white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        font-weight: bold;
+        letter-spacing: 1px;
+    }
+    .logo-text {
+        font-size: 26px;
+        font-weight: bold;
+        line-height: 1;
+        letter-spacing: 1px;
+    }
+    .logo-subtext {
+        font-size: 13px;
+        margin-top: 2px;
+    }
+    .header-right {
+        display: flex;
+        align-items: center;
+        gap: 30px;
+        font-size: 18px;
+        font-weight: 600;
+    }
+    .header-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        text-decoration: none;
+        color: white;
+    }
+    .header-item:hover {
+        opacity: 0.8;
+        color: white;
+    }
 </style>
 """
 st.markdown(custom_css, unsafe_allow_html=True)
@@ -64,36 +136,37 @@ def load_data():
 
 hotspots = load_data()
 
-# 3. STRICT TOP HEADER
-col_logo, col_spacer, col_share, col_download, col_about = st.columns([4, 5, 1, 1, 1])
+# 3. INJECT CUSTOM FIRMS HEADER
+st.markdown("""
+<div class="firms-header">
+    <div class="header-left">
+        <div class="hamburger">☰</div>
+        <div class="logo-area">
+            <div class="logo-circle">NASA</div>
+            <div>
+                <div class="logo-text">FIRMS</div>
+                <div class="logo-subtext">Fire Information for Resource Management System</div>
+            </div>
+        </div>
+    </div>
+    <div class="header-right">
+        <a href="https://github.com/yashaswinik-1610/Nasa-Hackathon-2026-/raw/main/Processed%20Data/harmonized_hotspots_canada_us.parquet" download class="header-item">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            <span>Download</span>
+        </a>
+        <a href="https://connect.posit.cloud/" target="_blank" class="header-item">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+            <span>Share</span>
+        </a>
+        <div class="header-item" title="This tool harmonizes MODIS and VIIRS satellite data to provide a continuous view of fire activity across Canada and the US from 2001 to 2025.">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+            <span>About</span>
+        </div>
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
-with col_logo:
-    st.markdown("<h2 style='margin-bottom: 0;'>Harmonized Fire Calendar</h2>", unsafe_allow_html=True)
-
-with col_share:
-    st.markdown("<br>", unsafe_allow_html=True)
-    st.link_button("Share", "https://connect.posit.cloud/", use_container_width=True)
-
-with col_download:
-    st.markdown("<br>", unsafe_allow_html=True)
-    csv_data = hotspots.sample(1000).to_csv(index=False).encode('utf-8')
-    st.download_button(
-        label="Download", 
-        data=csv_data, 
-        file_name="fire_data.csv", 
-        mime="text/csv",
-        use_container_width=True
-    )
-
-with col_about:
-    st.markdown("<br>", unsafe_allow_html=True)
-    with st.popover("About", use_container_width=True):
-        st.write("**About this App**")
-        st.write("This tool harmonizes MODIS and VIIRS satellite data to provide a continuous view of fire activity.")
-
-st.markdown("---")
-
-# 4. SIDEBAR LAYOUT
+# 4. SIDEBAR LAYOUT (Search Options)
 st.sidebar.markdown("<h3 style='text-align: center;'>Filters</h3>", unsafe_allow_html=True)
 st.sidebar.markdown("---")
 
@@ -168,7 +241,6 @@ with col2:
     pivot = monthly.pivot(index="year", columns="month", values="harmonized_count")
     pivot = pivot.reindex(index=all_years, columns=all_months).fillna(0).astype(int)
     
-    # Build Heatmap
     fig_calendar = go.Figure(data=go.Heatmap(
         z=pivot.values,
         x=["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
@@ -228,7 +300,6 @@ if show_graph:
     yearly_totals["year"] = yearly_totals["year"].astype(int)
     yearly_totals["harmonized_count"] = yearly_totals["harmonized_count"].astype(int)
 
-    # Changed to a line chart with markers to clearly show data points on the grid
     fig_trend = px.line(
         yearly_totals, 
         x="year", 
@@ -237,7 +308,6 @@ if show_graph:
         color_discrete_sequence=["#1E3B2F"] 
     )
 
-    # Add a subtle fill under the line while keeping the line strong
     fig_trend.update_traces(
         fill='tozeroy',
         fillcolor='rgba(30, 59, 47, 0.15)',
@@ -245,7 +315,6 @@ if show_graph:
         marker=dict(size=8, color="#1E3B2F")
     )
 
-    # Put the graph inside a gridlined box with specific axis names
     fig_trend.update_layout(
         xaxis_title="<b>Year</b>",
         yaxis_title="<b>Harmonized Count</b>",
@@ -256,11 +325,11 @@ if show_graph:
         height=400,
         xaxis=dict(
             showgrid=True,
-            gridcolor='#C8B48A', # Tan grid lines
+            gridcolor='#C8B48A',
             showline=True,
             linewidth=2,
             linecolor='#1E3B2F',
-            mirror=True, # Creates the box
+            mirror=True,
             tickfont=dict(color="#1E3B2F", size=12)
         ),
         yaxis=dict(
@@ -269,7 +338,7 @@ if show_graph:
             showline=True,
             linewidth=2,
             linecolor='#1E3B2F',
-            mirror=True, # Creates the box
+            mirror=True,
             tickformat=",d",
             tickfont=dict(color="#1E3B2F", size=12)
         )

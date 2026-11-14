@@ -22,17 +22,23 @@ custom_css = """
         color: #1E3B2F !important;
     }
     
-    /* Sidebar background */
+    /* --- SIDEBAR CROPPING & STYLING --- */
     [data-testid="stSidebar"] {
         background-color: #1E3B2F !important;
-        /* DECREASE WIDTH OF SIDEBAR */
-        min-width: 260px !important;
-        max-width: 260px !important;
+        /* Crop from top and bottom */
+        height: 88vh !important;
+        margin-top: 5vh !important;
+        margin-bottom: 5vh !important;
+        margin-left: 10px !important;
+        border-radius: 15px !important;
+        border: 1px solid #7F8C6A !important;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.3) !important;
     }
     
-    /* Hide the broken keyboard_double_arrow text in the sidebar */
-    [data-testid="stSidebarCollapseButton"] {
-        display: none !important;
+    /* Ensure sidebar content scrolls if it gets too long */
+    [data-testid="stSidebar"] > div:first-child {
+        height: 100% !important;
+        overflow-y: auto !important;
     }
     
     /* Sidebar text color */
@@ -47,11 +53,71 @@ custom_css = """
         font-weight: bold !important;
     }
     
-    /* Make native header transparent so sidebar toggle button stays visible */
+    /* --- CUSTOM TOGGLE BUTTON (3 THICK DASHED LINES) --- */
+    /* Hide the default SVG icons and text */
+    [data-testid="stSidebarCollapseButton"] span,
+    [data-testid="collapsedControl"] span,
+    [data-testid="stSidebarCollapseButton"] svg,
+    [data-testid="collapsedControl"] svg {
+        display: none !important;
+    }
+    
+    /* Draw the dashed lines */
+    [data-testid="stSidebarCollapseButton"]::before,
+    [data-testid="collapsedControl"]::before {
+        content: "";
+        display: block;
+        width: 20px;
+        height: 14px;
+        border-top: 3px dashed #F5F0E6;
+        border-bottom: 3px dashed #F5F0E6;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+    }
+    [data-testid="stSidebarCollapseButton"]::after,
+    [data-testid="collapsedControl"]::after {
+        content: "";
+        display: block;
+        width: 20px;
+        border-top: 3px dashed #F5F0E6;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+    }
+    
+    /* Style the button container */
+    [data-testid="stSidebarCollapseButton"],
+    [data-testid="collapsedControl"] {
+        background-color: #1E3B2F !important;
+        border-radius: 8px !important;
+        width: 40px !important;
+        height: 40px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        position: absolute !important;
+        z-index: 999999 !important;
+        border: 1px solid #7F8C6A !important;
+    }
+    
+    /* Position the close button inside the sidebar */
+    [data-testid="stSidebarCollapseButton"] {
+        top: 10px !important;
+        right: 10px !important;
+    }
+    /* Position the open button on the main page */
+    [data-testid="collapsedControl"] {
+        top: 15px !important;
+        left: 15px !important;
+    }
+
+    /* Make native header transparent so the open button is visible */
     header[data-testid="stHeader"] {
         background-color: transparent !important;
         background: transparent !important;
-        z-index: 999999 !important;
     }
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
@@ -179,8 +245,6 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # 4. SIDEBAR SEARCH OPTIONS
-# Removed "Search Options" title as requested.
-
 # Search Bar for Year (Selectbox allows typing to search)
 available_years = [str(y) for y in sorted(hotspots["year"].unique(), reverse=True)]
 selected_year_str = st.sidebar.selectbox("Search Year", available_years)
@@ -352,7 +416,7 @@ with col2:
     )
     st.plotly_chart(fig_calendar, use_container_width=True)
 
-# 7. ANALYTICS GRAPH (Always visible now)
+# 7. ANALYTICS GRAPH (Always visible)
 st.markdown("---")
 st.markdown(f"<h3 style='text-align: center;'>Analytics Graph - {region_name}</h3>", unsafe_allow_html=True)
 yearly_totals = region_df.groupby("year")["harmonized_count"].sum().reset_index()

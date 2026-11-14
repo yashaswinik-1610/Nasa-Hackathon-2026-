@@ -301,7 +301,7 @@ region_df = hotspots[
 ]
 
 # ====================== FOLIUM SATELLITE MAP ======================
-st.markdown(f"<h3 style='text-align: center;'>Map - {region_name} ({selected_year})</h3>", unsafe_allow_html=True)
+# Title removed, height expanded to fill the canvas
 map_data = region_df[region_df["year"] == selected_year]
 
 if len(map_data) > 0:
@@ -333,7 +333,8 @@ if len(map_data) > 0:
             )
         ).add_to(m)
         
-    st_folium(m, height=600, use_container_width=True, returned_objects=[])
+    # Expanded height to 800px for a full-canvas feel
+    st_folium(m, height=800, use_container_width=True, returned_objects=[])
 else:
     st.warning(f"No data available for {region_name} in {selected_year}.")
 
@@ -342,8 +343,7 @@ st.markdown("---")
 col_cal, col_trend = st.columns([1, 1.4])
 
 with col_cal:
-    st.markdown("<h3 style='text-align: center; margin-bottom: 8px;'>Burning Calendar</h3>", unsafe_allow_html=True)
-    
+    # Title removed
     monthly = region_df.groupby(["year", "month"])["harmonized_count"].sum().reset_index()
     all_years = list(range(2001, 2026))
     all_months = list(range(1, 13))
@@ -380,10 +380,9 @@ with col_cal:
         xaxis=dict(side="top", showgrid=False, zeroline=False, tickfont=dict(size=11, color="#1E3B2F")),
         yaxis=dict(autorange="reversed", showgrid=False, zeroline=False, tickfont=dict(size=12, color="#1E3B2F"), type="category"),
         margin=dict(l=50, r=10, t=40, b=15),
-        dragmode="zoom" # Enables click-and-drag box zoom
+        dragmode="zoom"
     )
     
-    # Config enables scroll zoom and the modebar
     st.plotly_chart(
         fig_calendar, 
         use_container_width=True, 
@@ -391,8 +390,7 @@ with col_cal:
     )
 
 with col_trend:
-    st.markdown(f"<h3 style='text-align: center; margin-bottom: 8px;'>Analytics Graph - {region_name}</h3>", unsafe_allow_html=True)
-    
+    # Title removed
     yearly_totals = region_df.groupby("year")["harmonized_count"].sum().reset_index()
     yearly_totals["year"] = yearly_totals["year"].astype(int)
     yearly_totals["harmonized_count"] = yearly_totals["harmonized_count"].astype(int)
@@ -440,11 +438,11 @@ with col_trend:
             linewidth=2, 
             linecolor='#1E3B2F', 
             mirror=True,
-            rangeslider=dict(visible=True), # Adds the motion pad slider
+            rangeslider=dict(visible=True),
             type="linear"
         ),
         yaxis=dict(showgrid=True, gridcolor='#C8B48A', showline=True, linewidth=2, linecolor='#1E3B2F', mirror=True, tickformat=",d"),
-        dragmode="pan" # Enables click-and-drag panning
+        dragmode="pan"
     )
     
     st.plotly_chart(

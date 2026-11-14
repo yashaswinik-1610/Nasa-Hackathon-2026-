@@ -8,6 +8,10 @@ from streamlit_folium import st_folium
 
 st.set_page_config(page_title="FIREWATCH", layout="wide", initial_sidebar_state="expanded")
 
+# ---------- Session state for ordering ----------
+if "panel_order" not in st.session_state:
+    st.session_state.panel_order = ["calendar", "analytics"]   # default order
+
 custom_css = """
 <style>
     html, body, [class*="css"] {
@@ -19,14 +23,17 @@ custom_css = """
         color: #1E3B2F !important;
     }
     
+    /* ========== GLASSMORPHISM SIDEBAR ========== */
     [data-testid="stSidebar"] {
-        background-color: #1E3B2F !important;
+        background: rgba(30, 59, 47, 0.75) !important;
+        backdrop-filter: blur(16px) !important;
+        -webkit-backdrop-filter: blur(16px) !important;
         height: 85vh !important;
         margin-top: 85px !important;
         margin-left: 10px !important;
-        border-radius: 15px !important;
-        border: 1px solid #7F8C6A !important;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.3) !important;
+        border-radius: 18px !important;
+        border: 1px solid rgba(255, 255, 255, 0.18) !important;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25) !important;
     }
     
     [data-testid="stSidebar"] > div:first-child {
@@ -114,6 +121,7 @@ custom_css = """
         color: #F5F0E6 !important;
     }
     
+    /* ========== CUSTOM HEADER ========== */
     .firms-header {
         background-color: #c90000;
         padding: 0px 25px 0px 75px;
@@ -175,6 +183,34 @@ custom_css = """
     
     .main-content {
         padding: 10px 20px 20px 20px;
+    }
+    
+    /* ========== GLASSMORPHISM PANELS ========== */
+    .glass-panel {
+        background: rgba(255, 255, 255, 0.45) !important;
+        backdrop-filter: blur(14px) !important;
+        -webkit-backdrop-filter: blur(14px) !important;
+        border-radius: 18px !important;
+        border: 1px solid rgba(255, 255, 255, 0.35) !important;
+        box-shadow: 0 8px 32px rgba(30, 59, 47, 0.12) !important;
+        padding: 18px 16px 12px 16px !important;
+        margin-bottom: 18px !important;
+    }
+    
+    .glass-panel h3 {
+        margin-top: 0 !important;
+        margin-bottom: 12px !important;
+    }
+    
+    /* Arrow buttons */
+    .arrow-btn {
+        background: rgba(30, 59, 47, 0.15) !important;
+        border: 1px solid rgba(30, 59, 47, 0.25) !important;
+        border-radius: 8px !important;
+        color: #1E3B2F !important;
+        font-size: 18px !important;
+        padding: 2px 10px !important;
+        cursor: pointer !important;
     }
 </style>
 """
@@ -344,17 +380,29 @@ if len(map_data) > 0:
                 )
             ).add_to(m)
             
-        # Full width map
         st_folium(m, height=620, use_container_width=True, returned_objects=[])
 else:
     st.warning(f"No data available for {region_name} in {selected_year}.")
 
-# ====================== BURNING CALENDAR + ANALYTICS ======================
+# ====================== MOVEABLE GLASS PANELS ======================
 st.markdown("---")
 
-col_cal, col_trend = st.columns([1, 1.4])
+# Arrow controls
+col_left, col_mid, col_right = st.columns([1, 6, 1])
+with col_mid:
+    c1, c2, c3 = st.columns([1, 1, 8])
+    with c1:
+        if st.button("▲", key="move_up", help="Move first panel up"):
+            st.session_state.panel_order = st.session_state.panel_order[::-1]
+            st.rerun()
+    with c2:
+        if st.button("▼", key="move_down", help="Move first panel down"):
+            st.session_state.panel_order = st.session_state.panel_order[::-1]
+            st.rerun()
 
-with col_cal:
+# Helper function to render calendar
+def render_calendar():
+    st.markdown('<div class="glass-panel">', unsafe_allow_html=True)
     st.markdown("<h3 style='text-align: center; margin-bottom: 8px;'>Burning Calendar</h3>", unsafe_allow_html=True)
     
     monthly = region_df.groupby(["year", "month"])["harmonized_count"].sum().reset_index()
@@ -386,17 +434,20 @@ with col_cal:
     )
 
     fig_calendar.update_layout(
-        height=480,
-        paper_bgcolor="#F5F0E6",
-        plot_bgcolor="#F5F0E6",
+        height=460,
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
         font=dict(family="Times New Roman", color="#1E3B2F"),
         xaxis=dict(side="top", showgrid=False, zeroline=False, tickfont=dict(size=11, color="#1E3B2F")),
         yaxis=dict(autorange="reversed", showgrid=False, zeroline=False, tickfont=dict(size=12, color="#1E3B2F"), type="category"),
         margin=dict(l=50, r=10, t=40, b=15)
     )
     st.plotly_chart(fig_calendar, use_container_width=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
-with col_trend:
+# Helper function to render analytics
+def render_analytics():
+    st.markdown('<div class="glass-panel">', unsafe_allow_html=True)
     st.markdown(f"<h3 style='text-align: center; margin-bottom: 8px;'>Analytics Graph - {region_name}</h3>", unsafe_allow_html=True)
     
     yearly_totals = region_df.groupby("year")["harmonized_count"].sum().reset_index()
@@ -434,14 +485,29 @@ with col_trend:
     fig_trend.update_layout(
         xaxis_title="<b>Year</b>",
         yaxis_title="<b>Harmonized Count</b>",
-        paper_bgcolor="#F5F0E6",
-        plot_bgcolor="#F5F0E6",
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
         font=dict(family="Times New Roman", color="#1E3B2F", size=13),
         margin=dict(l=55, r=25, t=30, b=40),
-        height=480,
-        xaxis=dict(showgrid=True, gridcolor='#C8B48A', showline=True, linewidth=2, linecolor='#1E3B2F', mirror=True),
-        yaxis=dict(showgrid=True, gridcolor='#C8B48A', showline=True, linewidth=2, linecolor='#1E3B2F', mirror=True, tickformat=",d")
+        height=460,
+        xaxis=dict(showgrid=True, gridcolor='rgba(200,180,138,0.4)', showline=True, linewidth=2, linecolor='#1E3B2F', mirror=True),
+        yaxis=dict(showgrid=True, gridcolor='rgba(200,180,138,0.4)', showline=True, linewidth=2, linecolor='#1E3B2F', mirror=True, tickformat=",d")
     )
     st.plotly_chart(fig_trend, use_container_width=True)
+    st.markdown('</div>', unsafe_allow_html=True)
+
+# Render panels according to current order
+col1, col2 = st.columns(2)
+
+if st.session_state.panel_order[0] == "calendar":
+    with col1:
+        render_calendar()
+    with col2:
+        render_analytics()
+else:
+    with col1:
+        render_analytics()
+    with col2:
+        render_calendar()
 
 st.markdown("</div>", unsafe_allow_html=True)

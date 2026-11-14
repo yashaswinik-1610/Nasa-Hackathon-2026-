@@ -68,7 +68,7 @@ st.markdown(custom_css, unsafe_allow_html=True)
 # 2. LOAD DATA FROM YOUR GITHUB FOLDER
 @st.cache_data
 def load_data():
-    
+  
     parquet_file = "Processed Data/harmonized_hotspots_canada_us.parquet"
     monthly_file = "Processed Data/harmonized_monthly_summary.csv"
     

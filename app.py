@@ -22,8 +22,8 @@ custom_css = """
     /* --- SIDEBAR STYLING --- */
     [data-testid="stSidebar"] {
         background-color: #1E3B2F !important;
-        height: 85vh !important;
-        margin-top: 85px !important; /* Floats below the header */
+        height: 82vh !important;
+        margin-top: 95px !important; /* Pushed down to fit the expanded header */
         margin-left: 10px !important;
         border-radius: 15px !important;
         border: 1px solid #7F8C6A !important;
@@ -46,20 +46,25 @@ custom_css = """
     }
     
     /* --- FIXING THE TOGGLE BUTTON (HAMBURGER) --- */
-    /* 1. Hide default elements */
+    
+    /* 1. Completely hide all native elements inside the toggle button */
     [data-testid="stSidebarCollapseButton"] svg,
-    [data-testid="collapsedControl"] svg,
     [data-testid="stSidebarCollapseButton"] span,
-    [data-testid="collapsedControl"] span {
+    [data-testid="stSidebarCollapseButton"] div,
+    [data-testid="collapsedControl"] svg,
+    [data-testid="collapsedControl"] span,
+    [data-testid="collapsedControl"] div {
         display: none !important;
+        opacity: 0 !important;
+        visibility: hidden !important;
     }
     
-    /* 2. Position the button exactly inside the left side of the header */
+    /* 2. Position the button inside the expanded header */
     [data-testid="stSidebarCollapseButton"],
     [data-testid="collapsedControl"] {
         position: fixed !important;
-        top: 20px !important;      /* Centers it vertically in the 75px header */
-        left: 20px !important;     /* Puts it next to the website name */
+        top: 20px !important;      
+        left: 20px !important;     
         z-index: 9999999 !important;
         background: transparent !important;
         border: none !important;
@@ -69,20 +74,21 @@ custom_css = """
         align-items: center !important;
         justify-content: center !important;
         cursor: pointer !important;
-        color: white !important;
         border-radius: 8px !important;
     }
     
     /* 3. Inject the custom white hamburger icon */
-    [data-testid="stSidebarCollapseButton"]::after,
-    [data-testid="collapsedControl"]::after {
+    [data-testid="stSidebarCollapseButton"]::before,
+    [data-testid="collapsedControl"]::before {
         content: "☰" !important;
-        font-size: 32px !important;
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        font-size: 34px !important;
         color: white !important;
         font-family: Arial, sans-serif !important;
         font-weight: bold !important;
         line-height: 1 !important;
-        display: block !important;
     }
     
     /* Hover effect */
@@ -114,15 +120,15 @@ custom_css = """
         color: #F5F0E6 !important;
     }
     
-    /* --- CUSTOM HEADER --- */
+    /* --- EXPANDED CUSTOM HEADER --- */
     .firms-header {
         background-color: #c90000;
-        padding: 0px 25px 0px 75px; /* Left padding creates space for the hamburger */
+        padding: 0px 25px 0px 80px; /* 80px left padding makes room for the hamburger */
         display: flex;
         align-items: center;
         justify-content: space-between;
         color: white;
-        height: 75px;
+        height: 85px; /* EXPANDED HEADER HEIGHT */
         width: 100%;
         margin-top: 0px;
         box-shadow: 0 2px 8px rgba(0,0,0,0.25);
@@ -140,14 +146,14 @@ custom_css = """
         gap: 12px;
     }
     .logo-text {
-        font-size: 26px;
+        font-size: 28px; /* Slightly larger text */
         font-weight: bold;
         line-height: 1;
         letter-spacing: 1px;
         color: white;
     }
     .logo-subtext {
-        font-size: 13px;
+        font-size: 14px;
         margin-top: 2px;
         color: white;
         opacity: 0.95;
@@ -165,7 +171,7 @@ custom_css = """
         gap: 8px;
         text-decoration: none !important;
         color: white !important;
-        padding: 6px 10px;
+        padding: 8px 12px;
         border-radius: 6px;
         transition: background 0.2s;
     }
@@ -175,7 +181,7 @@ custom_css = """
     }
     
     .main-content {
-        padding: 10px 20px 20px 20px;
+        padding: 15px 25px 25px 25px;
     }
 </style>
 """

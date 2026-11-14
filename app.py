@@ -25,12 +25,26 @@ custom_css = """
     /* Sidebar background */
     [data-testid="stSidebar"] {
         background-color: #1E3B2F !important;
+        /* DECREASE WIDTH OF SIDEBAR */
+        min-width: 260px !important;
+        max-width: 260px !important;
+    }
+    
+    /* Hide the broken keyboard_double_arrow text in the sidebar */
+    [data-testid="stSidebarCollapseButton"] {
+        display: none !important;
     }
     
     /* Sidebar text color */
     [data-testid="stSidebar"] * {
         color: #F5F0E6 !important;
         font-family: 'Times New Roman', Times, serif !important;
+    }
+    
+    /* INCREASE FONT SIZE FOR SIDEBAR LABELS */
+    [data-testid="stSidebar"] label p {
+        font-size: 1.15rem !important;
+        font-weight: bold !important;
     }
     
     /* Make native header transparent so sidebar toggle button stays visible */
@@ -165,8 +179,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # 4. SIDEBAR SEARCH OPTIONS
-st.sidebar.markdown("<h3 style='text-align: center;'>Search Options</h3>", unsafe_allow_html=True)
-st.sidebar.markdown("---")
+# Removed "Search Options" title as requested.
 
 # Search Bar for Year (Selectbox allows typing to search)
 available_years = [str(y) for y in sorted(hotspots["year"].unique(), reverse=True)]
@@ -236,7 +249,6 @@ else: # Live Location
         st.sidebar.info("Click the button to center the map on your current region.")
 
 st.sidebar.markdown("---")
-# Removed the Analytics Graph toggle here
 
 # 5. FILTERING LOGIC
 region_df = hotspots[

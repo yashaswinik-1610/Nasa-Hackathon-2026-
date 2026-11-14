@@ -299,7 +299,7 @@ region_df = hotspots[
     (hotspots["grid_lon"] >= lon_min) & (hotspots["grid_lon"] <= lon_max)
 ]
 
-# ====================== PLOTLY MAP (Loads Instantly) ======================
+# ====================== PLOTLY MAP ======================
 st.markdown(f"<h3 style='text-align: center;'>Map - {region_name} ({selected_year})</h3>", unsafe_allow_html=True)
 map_data = region_df[region_df["year"] == selected_year]
 
@@ -309,7 +309,7 @@ if len(map_data) > 0:
     center_lat = (lat_min + lat_max) / 2
     center_lon = (lon_min + lon_max) / 2
     
-    # Using Plotly scatter_map for instant rendering without iframes
+    # Using Plotly scatter_map for instant rendering
     fig_map = px.scatter_map(
         map_df,
         lat="grid_lat",
@@ -328,10 +328,10 @@ if len(map_data) > 0:
     )
     
     fig_map.update_traces(marker=dict(size=6, opacity=0.8))
+    # FIX: Removed the deprecated mapbox=dict() property here
     fig_map.update_layout(
         margin={"r":0,"t":0,"l":0,"b":0},
-        paper_bgcolor="#F5F0E6",
-        mapbox=dict(style="open-street-map")
+        paper_bgcolor="#F5F0E6"
     )
     st.plotly_chart(fig_map, use_container_width=True)
 else:

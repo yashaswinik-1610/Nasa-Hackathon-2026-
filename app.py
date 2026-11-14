@@ -13,27 +13,39 @@ custom_css = """
     html, body, [class*="css"] {
         font-family: 'Times New Roman', Times, serif !important;
     }
-    
+
     .stApp {
         background-color: #F5F0E6 !important;
         color: #1E3B2F !important;
     }
-    
-    /* --- HIDE NATIVE HEADER COMPLETELY --- */
+
+    /* --- NEUTRALISE NATIVE HEADER (don't display:none it, the toggle lives inside it) --- */
     header[data-testid="stHeader"] {
+        background: transparent !important;
+        height: 0 !important;
+        min-height: 0 !important;
+    }
+    [data-testid="stToolbar"], [data-testid="stDecoration"], [data-testid="stStatusWidget"] {
         display: none !important;
     }
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
-    
+
+    /* --- REMOVE "VIEW FULLSCREEN / EXPAND" ON CHARTS --- */
+    [data-testid="stElementToolbar"],
+    button[title="View fullscreen"],
+    button[data-testid="StyledFullScreenButton"] {
+        display: none !important;
+    }
+
     /* --- MAIN CONTAINER PADDING --- */
     .block-container {
-        padding-top: 100px !important; 
+        padding-top: 100px !important;
         padding-left: 20px !important;
         padding-right: 20px !important;
         max-width: 100% !important;
     }
-    
+
     /* --- FIXED RED HEADER --- */
     .firms-header {
         position: fixed !important;
@@ -45,11 +57,11 @@ custom_css = """
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 0px 25px 0px 75px !important; 
+        padding: 0px 25px 0px 75px !important;
         box-shadow: 0 2px 8px rgba(0,0,0,0.25);
         z-index: 999999 !important;
     }
-    
+
     .logo-text {
         font-size: 28px;
         font-weight: bold;
@@ -86,91 +98,114 @@ custom_css = """
     .header-item:hover {
         background-color: rgba(255,255,255,0.15);
     }
-    
-    /* --- FORCE HAMBURGER BUTTON INTO THE RED HEADER --- */
-    [data-testid="stSidebarCollapseButton"] svg,
-    [data-testid="stSidebarCollapseButton"] span,
-    [data-testid="stSidebarCollapseButton"] div,
-    [data-testid="collapsedControl"] svg,
-    [data-testid="collapsedControl"] span,
-    [data-testid="collapsedControl"] div {
-        display: none !important;
-        opacity: 0 !important;
-    }
-    
+
+    /* --- SIDEBAR HAMBURGER (replaces the native arrow) --- */
     [data-testid="stSidebarCollapseButton"],
+    [data-testid="stExpandSidebarButton"],
     [data-testid="collapsedControl"] {
         position: fixed !important;
-        top: 22px !important;      
-        left: 20px !important;     
-        z-index: 1000000 !important; 
-        background: transparent !important;
-        border: none !important;
+        top: 20px !important;
+        left: 20px !important;
         width: 45px !important;
         height: 45px !important;
+        z-index: 1000000 !important;
         display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        cursor: pointer !important;
+        align-items: center;
+        justify-content: center;
         border-radius: 8px !important;
+        background: transparent !important;
     }
-    
+    /* hide the native arrow icons but keep the real button clickable (invisible, full size) */
+    [data-testid="stSidebarCollapseButton"] svg,
+    [data-testid="stExpandSidebarButton"] svg,
+    [data-testid="collapsedControl"] svg,
+    [data-testid="stSidebarCollapseButton"] span,
+    [data-testid="stExpandSidebarButton"] span,
+    [data-testid="collapsedControl"] span {
+        display: none !important;
+    }
+    [data-testid="stSidebarCollapseButton"] button,
+    [data-testid="stExpandSidebarButton"],
+    [data-testid="collapsedControl"] button {
+        position: absolute !important;
+        inset: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        opacity: 0 !important;
+        cursor: pointer !important;
+    }
     [data-testid="stSidebarCollapseButton"]::before,
+    [data-testid="stExpandSidebarButton"]::before,
     [data-testid="collapsedControl"]::before {
-        content: "☰" !important;
-        display: block !important;
-        visibility: visible !important;
-        opacity: 1 !important;
-        font-size: 34px !important;
-        color: white !important;
-        font-family: Arial, sans-serif !important;
-        font-weight: bold !important;
-        line-height: 1 !important;
+        content: "☰";
+        font-size: 34px;
+        font-weight: bold;
+        line-height: 1;
+        color: white;
+        font-family: Arial, sans-serif;
+        pointer-events: none;   /* clicks fall through to the real button */
     }
-    
     [data-testid="stSidebarCollapseButton"]:hover,
+    [data-testid="stExpandSidebarButton"]:hover,
     [data-testid="collapsedControl"]:hover {
         background-color: rgba(255,255,255,0.15) !important;
     }
-    
+
+    /* --- RIGHT PANEL TOGGLE BUTTON (key = toggle_charts) --- */
+    .st-key-toggle_charts button {
+        background-color: #1E3B2F !important;
+        border: 1px solid #7F8C6A !important;
+        border-radius: 8px !important;
+        padding: 4px 16px !important;
+    }
+    .st-key-toggle_charts button p {
+        color: #F5F0E6 !important;
+        font-size: 1.05rem !important;
+        font-weight: bold !important;
+    }
+    .st-key-toggle_charts button:hover {
+        background-color: #c90000 !important;
+    }
+
     /* --- SIDEBAR STYLING --- */
     [data-testid="stSidebar"] {
         background-color: #1E3B2F !important;
         height: 82vh !important;
-        margin-top: 95px !important; 
+        margin-top: 95px !important;
         margin-left: 10px !important;
         border-radius: 15px !important;
         border: 1px solid #7F8C6A !important;
         box-shadow: 0 4px 10px rgba(0,0,0,0.3) !important;
         z-index: 100 !important;
     }
-    
+
     [data-testid="stSidebar"] > div:first-child {
         height: 100% !important;
         overflow-y: auto !important;
     }
-    
+
     [data-testid="stSidebar"] * {
         color: #F5F0E6 !important;
         font-family: 'Times New Roman', Times, serif !important;
     }
-    
+
     [data-testid="stSidebar"] label p {
         font-size: 1.15rem !important;
         font-weight: bold !important;
     }
-    
+
     /* General Text Color */
     h1, h2, h3, h4, h5, h6, p, label {
         color: #1E3B2F !important;
     }
-    [data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2, [data-testid="stSidebar"] h3, 
+    [data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2, [data-testid="stSidebar"] h3,
     [data-testid="stSidebar"] p, [data-testid="stSidebar"] label {
         color: #F5F0E6 !important;
     }
 </style>
 """
 st.markdown(custom_css, unsafe_allow_html=True)
+
 
 @st.cache_data
 def load_data():
@@ -185,6 +220,7 @@ def load_data():
         st.error(f"Error loading data: {e}")
         st.stop()
 
+
 hotspots = load_data()
 
 # Inject Fixed Header
@@ -197,7 +233,7 @@ st.markdown("""
         </div>
     </div>
     <div class="header-right">
-        <a href="https://github.com/yashaswinik-1610/Nasa-Hackathon-2026-/raw/main/Processed%20Data/harmonized_hotspots_canada_us.parquet" 
+        <a href="https://github.com/yashaswinik-1610/Nasa-Hackathon-2026-/raw/main/Processed%20Data/harmonized_hotspots_canada_us.parquet"
            download class="header-item" target="_blank">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
@@ -236,7 +272,7 @@ selected_year = int(selected_year_str)
 st.sidebar.markdown("---")
 
 search_method = st.sidebar.radio(
-    "Search Method", 
+    "Search Method",
     ["Country", "Nearest City", "Coordinates (Lat/Lon)", "Live Location"]
 )
 
@@ -302,26 +338,42 @@ region_df = hotspots[
 ]
 
 # ====================== DASHBOARD LAYOUT ======================
-# Two columns: Map (Left), Charts (Right Panel)
-col_map, col_charts = st.columns([1.8, 1])
+if "show_charts" not in st.session_state:
+    st.session_state.show_charts = True
 
-# --- LEFT: MAP ---
-with col_map:
+
+def toggle_charts():
+    st.session_state.show_charts = not st.session_state.show_charts
+
+
+# Right-aligned hamburger toggle above the dashboard
+_, toggle_col = st.columns([8, 1.2])
+with toggle_col:
+    st.button(
+        "☰ Charts",
+        key="toggle_charts",
+        on_click=toggle_charts,
+        help="Show / hide Burning Calendar and Analytics Graph",
+        use_container_width=True,
+    )
+
+
+def render_map():
     map_data = region_df[region_df["year"] == selected_year]
-    
+
     if len(map_data) > 0:
         map_df = map_data.sample(n=min(5000, len(map_data)), random_state=42)
-        
+
         center_lat = (lat_min + lat_max) / 2
         center_lon = (lon_min + lon_max) / 2
-        
+
         m = folium.Map(
             location=[center_lat, center_lon],
             zoom_start=zoom_level,
             tiles="Esri World Imagery",
-            control_scale=True
+            control_scale=True,
         )
-        
+
         for _, row in map_df.iterrows():
             folium.CircleMarker(
                 location=[row.grid_lat, row.grid_lon],
@@ -335,26 +387,25 @@ with col_map:
                     f"Lon: {row.grid_lon:.3f}<br>"
                     f"Year: {int(row.year)}<br>"
                     f"Fires: {int(row.harmonized_count)}"
-                )
+                ),
             ).add_to(m)
-            
-        # Map fills the height of the left column
+
         st_folium(m, height=800, use_container_width=True, returned_objects=[])
     else:
         st.warning(f"No data available for {region_name} in {selected_year}.")
 
-# --- RIGHT: CHARTS PANEL ---
-with col_charts:
+
+def render_charts():
     # 1. Burning Calendar
     st.markdown("<h4 style='text-align: center; margin-top: 0;'>Burning Calendar</h4>", unsafe_allow_html=True)
-    
+
     monthly = region_df.groupby(["year", "month"])["harmonized_count"].sum().reset_index()
     all_years = list(range(2001, 2026))
     all_months = list(range(1, 13))
-    
+
     pivot = monthly.pivot(index="year", columns="month", values="harmonized_count")
     pivot = pivot.reindex(index=all_years, columns=all_months).fillna(0).astype(int)
-    
+
     fig_calendar = go.Figure(data=go.Heatmap(
         z=pivot.values,
         x=["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
@@ -365,7 +416,7 @@ with col_charts:
         zmin=0,
         zmax=int(pivot.values.max()) if pivot.values.max() > 0 else 1,
         hovertemplate="Year: %{y}<br>Fires: %{z}<extra></extra>",
-        colorbar=dict(title="Intensity", thickness=10, len=0.8, tickformat=",d")
+        colorbar=dict(title="Intensity", thickness=10, len=0.8, tickformat=",d"),
     ))
 
     year_index = list(pivot.index).index(selected_year)
@@ -373,55 +424,37 @@ with col_charts:
         type="rect",
         x0=-0.5, x1=11.5,
         y0=year_index - 0.5, y1=year_index + 0.5,
-        line=dict(color="#1E3B2F", width=3)
+        line=dict(color="#1E3B2F", width=3),
     )
 
     fig_calendar.update_layout(
-        height=380, # Reduced to fit in the right panel alongside the graph
+        height=380,
         paper_bgcolor="#F5F0E6",
         plot_bgcolor="#F5F0E6",
         font=dict(family="Times New Roman", color="#1E3B2F"),
-        xaxis=dict(
-            side="top", 
-            showgrid=False, 
-            zeroline=False, 
-            tickfont=dict(size=10, color="#1E3B2F"),
-            title="<b>Month</b>"
-        ),
-        yaxis=dict(
-            autorange="reversed", 
-            showgrid=False, 
-            zeroline=False, 
-            tickfont=dict(size=11, color="#1E3B2F"), 
-            type="category",
-            title="<b>Year</b>"
-        ),
+        xaxis=dict(side="top", showgrid=False, zeroline=False,
+                   tickfont=dict(size=10, color="#1E3B2F"), title="<b>Month</b>"),
+        yaxis=dict(autorange="reversed", showgrid=False, zeroline=False,
+                   tickfont=dict(size=11, color="#1E3B2F"), type="category", title="<b>Year</b>"),
         margin=dict(l=50, r=10, t=40, b=15),
-        dragmode="zoom"
+        dragmode="zoom",
     )
-    
-    st.plotly_chart(fig_calendar, use_container_width=True, config={'displayModeBar': False})
+    st.plotly_chart(fig_calendar, use_container_width=True, config={"displayModeBar": False})
 
     # 2. Analytics Graph
     st.markdown("<h4 style='text-align: center; margin-top: 10px;'>Analytics Graph</h4>", unsafe_allow_html=True)
-    
+
     yearly_totals = region_df.groupby("year")["harmonized_count"].sum().reset_index()
     yearly_totals["year"] = yearly_totals["year"].astype(int)
     yearly_totals["harmonized_count"] = yearly_totals["harmonized_count"].astype(int)
 
     fig_trend = px.line(
-        yearly_totals,
-        x="year",
-        y="harmonized_count",
-        markers=True,
-        color_discrete_sequence=["#1E3B2F"]
+        yearly_totals, x="year", y="harmonized_count",
+        markers=True, color_discrete_sequence=["#1E3B2F"],
     )
-
     fig_trend.update_traces(
-        fill='tozeroy',
-        fillcolor='rgba(30, 59, 47, 0.15)',
-        line=dict(width=3),
-        marker=dict(size=6, color="#1E3B2F")
+        fill="tozeroy", fillcolor="rgba(30, 59, 47, 0.15)",
+        line=dict(width=3), marker=dict(size=6, color="#1E3B2F"),
     )
 
     selected_count = 0
@@ -429,12 +462,8 @@ with col_charts:
         selected_count = int(yearly_totals[yearly_totals["year"] == selected_year]["harmonized_count"].values[0])
 
     fig_trend.add_annotation(
-        x=selected_year,
-        y=selected_count,
-        text="▼",
-        showarrow=False,
-        font=dict(color="red", size=20),
-        yshift=12
+        x=selected_year, y=selected_count, text="▼",
+        showarrow=False, font=dict(color="red", size=20), yshift=12,
     )
 
     fig_trend.update_layout(
@@ -444,26 +473,21 @@ with col_charts:
         plot_bgcolor="#F5F0E6",
         font=dict(family="Times New Roman", color="#1E3B2F", size=12),
         margin=dict(l=55, r=20, t=30, b=30),
-        height=380, # Matches the calendar height
-        xaxis=dict(
-            showgrid=True, 
-            gridcolor='#C8B48A', 
-            showline=True, 
-            linewidth=2, 
-            linecolor='#1E3B2F', 
-            mirror=True,
-            type="linear"
-        ),
-        yaxis=dict(
-            showgrid=True, 
-            gridcolor='#C8B48A', 
-            showline=True, 
-            linewidth=2, 
-            linecolor='#1E3B2F', 
-            mirror=True, 
-            tickformat=",d"
-        ),
-        dragmode="pan"
+        height=380,
+        xaxis=dict(showgrid=True, gridcolor="#C8B48A", showline=True, linewidth=2,
+                   linecolor="#1E3B2F", mirror=True, type="linear"),
+        yaxis=dict(showgrid=True, gridcolor="#C8B48A", showline=True, linewidth=2,
+                   linecolor="#1E3B2F", mirror=True, tickformat=",d"),
+        dragmode="pan",
     )
-    
-    st.plotly_chart(fig_trend, use_container_width=True, config={'displayModeBar': False})
+    st.plotly_chart(fig_trend, use_container_width=True, config={"displayModeBar": False})
+
+
+if st.session_state.show_charts:
+    col_map, col_charts = st.columns([1.8, 1])
+    with col_map:
+        render_map()
+    with col_charts:
+        render_charts()
+else:
+    render_map()   # map takes the full width when the panel is hidden

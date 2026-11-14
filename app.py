@@ -168,23 +168,22 @@ with col2:
     pivot = monthly.pivot(index="year", columns="month", values="harmonized_count")
     pivot = pivot.reindex(index=all_years, columns=all_months).fillna(0).astype(int)
     
-    # Build Heatmap
+    # Build Heatmap with explicit full month names
     fig_calendar = go.Figure(data=go.Heatmap(
         z=pivot.values,
-        x=["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+        x=["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
         y=[str(y) for y in pivot.index],
         colorscale="YlOrRd", 
         xgap=3,
         ygap=3,
         zmin=0,
         zmax=int(pivot.values.max()),
-        # REMOVED month from the hover template
         hovertemplate="Year: %{y}<br>Fires: %{z}<extra></extra>",
         colorbar=dict(
             title="Intensity", 
             thickness=15, 
             len=0.8,
-            x=1.05,
+            x=1.05, # Move strip slightly right
             y=0.5,
             tickformat=",d"
         )
@@ -207,17 +206,17 @@ with col2:
             side="top", # Months clearly labeled on top
             showgrid=False,
             zeroline=False,
-            tickfont=dict(size=11)
+            tickfont=dict(size=12, color="#1E3B2F", weight="bold") # Made bold so it's visible
         ),
         yaxis=dict(
-            autorange="reversed",
+            autorange="reversed", # Years go top-down
             showgrid=False,
             zeroline=False,
-            tickfont=dict(size=11),
+            tickfont=dict(size=13, color="#1E3B2F", weight="bold"), # Made bold so it's visible
             title="Year",
             type="category"
         ),
-        margin=dict(l=50, r=10, t=40, b=20)
+        margin=dict(l=60, r=10, t=50, b=20) # Increased top and left margins
     )
     st.plotly_chart(fig_calendar, use_container_width=True)
 

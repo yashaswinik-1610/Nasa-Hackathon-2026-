@@ -1,12 +1,11 @@
 import os
-import requests
 import pandas as pd
 import streamlit as st
 import plotly.express as px
 import folium
 from streamlit_folium import st_folium
 
-# 1. PAGE CONFIGURATION & CUSTOM CSS (Colors & Fonts)
+# PAGE CONFIGURATION & CUSTOM CSS (Colors & Fonts)
 st.set_page_config(page_title="Fire Hotspot Calendar", layout="wide")
 
 custom_css = """
@@ -66,19 +65,15 @@ custom_css = """
 """
 st.markdown(custom_css, unsafe_allow_html=True)
 
-# 2. LOAD DATA FROM GITHUB RELEASES
+
 @st.cache_data
 def load_data():
+  
     parquet_file = "harmonized_hotspots_canada_us.parquet"
-    release_url = "https://github.com/yashaswinik-1610/Nasa-Hackathon-2026-/releases/download/v1.0/harmonized_hotspots_canada_us.parquet"
-
+    
     if not os.path.exists(parquet_file):
-        with st.spinner("Downloading large dataset from GitHub Releases... Please wait."):
-            response = requests.get(release_url, stream=True)
-            response.raise_for_status() 
-            with open(parquet_file, "wb") as f:
-                for chunk in response.iter_content(chunk_size=8192):
-                    f.write(chunk)
+        st.error(f"File not found: {parquet_file}. Please make sure it is uploaded to your GitHub repository.")
+        st.stop()
 
     hotspots = pd.read_parquet(parquet_file)
     monthly = pd.read_csv("processed_data/harmonized_monthly_summary.csv")
@@ -90,7 +85,7 @@ except Exception as e:
     st.error(f"Error loading data: {e}")
     st.stop()
 
-# 3. SIDEBAR LAYOUT (Matches your wireframe)
+# SIDEBAR LAYOUT (Matches your wireframe)
 st.sidebar.markdown("<h1 style='text-align: center; font-size: 2em;'>Fire Analytics</h1>", unsafe_allow_html=True)
 st.sidebar.markdown("---")
 
@@ -126,7 +121,7 @@ st.sidebar.markdown("---")
 st.sidebar.markdown("### About")
 st.sidebar.info("This tool harmonizes MODIS and VIIRS satellite data to provide a continuous, sensor-agnostic view of fire activity across Canada and the US from 2001 to 2025.")
 
-# 4. FILTERING LOGIC
+# FILTERING LOGIC
 if country == "Canada":
     filtered_hotspots = hotspots[hotspots["grid_lat"] > 49.0]
 elif country == "United States":
@@ -144,7 +139,7 @@ filtered_hotspots = filtered_hotspots[
 if search_query.isdigit():
     filtered_hotspots = filtered_hotspots[filtered_hotspots["year"] == int(search_query)]
 
-# 5. MAIN DASHBOARD LAYOUT
+# MAIN DASHBOARD LAYOUT
 st.title("Harmonized Fire Hotspot Calendar")
 st.write(f"**Currently viewing:** {country}")
 

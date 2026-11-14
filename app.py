@@ -6,23 +6,19 @@ import plotly.graph_objects as go
 import folium
 from streamlit_folium import st_folium
 
-# 1. PAGE CONFIGURATION & CUSTOM CSS
 st.set_page_config(page_title="FIREWATCH", layout="wide", initial_sidebar_state="expanded")
 
-custom_css =
+custom_css = """
 <style>
-    /* Font family */
     html, body, [class*="css"] {
         font-family: 'Times New Roman', Times, serif !important;
     }
     
-    /* Main background and text color */
     .stApp {
         background-color: #F5F0E6 !important;
         color: #1E3B2F !important;
     }
     
-    /* --- SIDEBAR FLOATING & CROPPING --- */
     [data-testid="stSidebar"] {
         background-color: #1E3B2F !important;
         height: 85vh !important;
@@ -33,68 +29,69 @@ custom_css =
         box-shadow: 0 4px 10px rgba(0,0,0,0.3) !important;
     }
     
-    /* Sidebar content scrolling */
     [data-testid="stSidebar"] > div:first-child {
         height: 100% !important;
         overflow-y: auto !important;
     }
     
-    /* Sidebar text color */
     [data-testid="stSidebar"] * {
         color: #F5F0E6 !important;
         font-family: 'Times New Roman', Times, serif !important;
     }
     
-    /* INCREASE FONT SIZE FOR SIDEBAR LABELS */
     [data-testid="stSidebar"] label p {
         font-size: 1.15rem !important;
         font-weight: bold !important;
     }
     
-    /* --- HAMBURGER TOGGLE INSIDE THE RED HEADER --- */
-    /* Hide the default Streamlit arrows / icons */
+    /* Hide original Streamlit icons */
+    [data-testid="stSidebarCollapseButton"] svg,
+    [data-testid="collapsedControl"] svg,
     [data-testid="stSidebarCollapseButton"] span,
     [data-testid="collapsedControl"] span,
-    [data-testid="stSidebarCollapseButton"] svg,
-    [data-testid="collapsedControl"] svg {
+    button[kind="header"] svg {
         display: none !important;
+        visibility: hidden !important;
     }
     
-    /* Position the real Streamlit toggle button inside the header */
+    /* Force hamburger button inside the red header */
     [data-testid="stSidebarCollapseButton"],
-    [data-testid="collapsedControl"] {
+    [data-testid="collapsedControl"],
+    button[kind="header"] {
         position: fixed !important;
-        top: 18px !important;
-        left: 22px !important;
-        z-index: 9999999 !important;
-        background-color: transparent !important;
+        top: 16px !important;
+        left: 18px !important;
+        z-index: 999999 !important;
+        width: 48px !important;
+        height: 48px !important;
+        background: transparent !important;
         border: none !important;
-        width: 42px !important;
-        height: 42px !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
         cursor: pointer !important;
-        border-radius: 6px !important;
+        border-radius: 8px !important;
+        visibility: visible !important;
+        opacity: 1 !important;
     }
     
-    /* The hamburger icon (3 lines) */
     [data-testid="stSidebarCollapseButton"]::before,
-    [data-testid="collapsedControl"]::before {
+    [data-testid="collapsedControl"]::before,
+    button[kind="header"]::before {
         content: "☰" !important;
-        font-size: 28px !important;
+        font-size: 30px !important;
         color: white !important;
-        font-weight: bold !important;
+        font-weight: 700 !important;
         line-height: 1 !important;
+        display: block !important;
     }
     
-    /* Hover effect for hamburger */
     [data-testid="stSidebarCollapseButton"]:hover,
-    [data-testid="collapsedControl"]:hover {
-        background-color: rgba(255,255,255,0.15) !important;
+    [data-testid="collapsedControl"]:hover,
+    button[kind="header"]:hover {
+        background-color: rgba(255,255,255,0.18) !important;
     }
-
-    /* Make native header transparent */
+    
     header[data-testid="stHeader"] {
         background-color: transparent !important;
         background: transparent !important;
@@ -102,7 +99,6 @@ custom_css =
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     
-    /* Remove Streamlit's default top padding */
     .block-container {
         padding-top: 0rem !important;
         padding-left: 0rem !important;
@@ -110,7 +106,6 @@ custom_css =
         max-width: 100% !important;
     }
     
-    /* Style all text to be dark green */
     h1, h2, h3, h4, h5, h6, p, label {
         color: #1E3B2F !important;
     }
@@ -119,10 +114,9 @@ custom_css =
         color: #F5F0E6 !important;
     }
     
-    /* --- CUSTOM HEADER CSS --- */
     .firms-header {
         background-color: #c90000;
-        padding: 0px 25px 0px 70px;   /* left padding leaves space for hamburger */
+        padding: 0px 25px 0px 75px;
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -131,6 +125,8 @@ custom_css =
         width: 100%;
         margin-top: 0px;
         box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+        position: relative;
+        z-index: 100;
     }
     .header-left {
         display: flex;
@@ -177,15 +173,13 @@ custom_css =
         color: white !important;
     }
     
-    /* Padding for main content area */
     .main-content {
         padding: 20px 30px;
     }
 </style>
-
+"""
 st.markdown(custom_css, unsafe_allow_html=True)
 
-# 2. LOAD DATA
 @st.cache_data
 def load_data():
     parquet_file = "Processed Data/harmonized_hotspots_canada_us.parquet"
@@ -201,7 +195,6 @@ def load_data():
 
 hotspots = load_data()
 
-# 3. INJECT CUSTOM HEADER (hamburger is positioned by CSS next to the title)
 st.markdown("""
 <div class="firms-header">
     <div class="header-left">
@@ -245,7 +238,6 @@ st.markdown("""
 <div class="main-content">
 """, unsafe_allow_html=True)
 
-# 4. SIDEBAR SEARCH OPTIONS
 available_years = [str(y) for y in sorted(hotspots["year"].unique(), reverse=True)]
 selected_year_str = st.sidebar.selectbox("Search Year", available_years)
 selected_year = int(selected_year_str)
@@ -257,7 +249,6 @@ search_method = st.sidebar.radio(
     ["Country", "Nearest City", "Coordinates (Lat/Lon)", "Live Location"]
 )
 
-# Default Bounds
 lat_min, lat_max = 18.0, 84.0
 lon_min, lon_max = -170.0, -50.0
 region_name = "All Data"
@@ -300,7 +291,7 @@ elif search_method == "Coordinates (Lat/Lon)":
     region_name = "Custom Area"
     zoom_level = 4
 
-else:  # Live Location
+else:
     st.sidebar.markdown("**Live Location**")
     if st.sidebar.button("Detect My Location"):
         st.sidebar.success("Location detected! Centering map.")
@@ -313,13 +304,11 @@ else:  # Live Location
 
 st.sidebar.markdown("---")
 
-# 5. FILTERING LOGIC
 region_df = hotspots[
     (hotspots["grid_lat"] >= lat_min) & (hotspots["grid_lat"] <= lat_max) &
     (hotspots["grid_lon"] >= lon_min) & (hotspots["grid_lon"] <= lon_max)
 ]
 
-# 6. MAIN DASHBOARD LAYOUT
 col1, col2 = st.columns([1.3, 1])
 
 with col1:
@@ -416,9 +405,9 @@ with col2:
     )
     st.plotly_chart(fig_calendar, use_container_width=True)
 
-# 7. ANALYTICS GRAPH
 st.markdown("---")
 st.markdown(f"<h3 style='text-align: center;'>Analytics Graph - {region_name}</h3>", unsafe_allow_html=True)
+
 yearly_totals = region_df.groupby("year")["harmonized_count"].sum().reset_index()
 yearly_totals["year"] = yearly_totals["year"].astype(int)
 yearly_totals["harmonized_count"] = yearly_totals["harmonized_count"].astype(int)
@@ -467,7 +456,10 @@ fig_trend.update_layout(
     )
 )
 
-selected_count = int(yearly_totals[yearly_totals["year"] == selected_year]["harmonized_count"].values[0]) if selected_year in yearly_totals["year"].values else 0
+selected_count = 0
+if selected_year in yearly_totals["year"].values:
+    selected_count = int(yearly_totals[yearly_totals["year"] == selected_year]["harmonized_count"].values[0])
+
 fig_trend.add_annotation(
     x=selected_year, 
     y=selected_count,

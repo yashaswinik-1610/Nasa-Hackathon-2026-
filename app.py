@@ -3,6 +3,8 @@ import pandas as pd
 import streamlit as st
 import plotly.express as px
 import plotly.graph_objects as go
+import folium
+from streamlit_folium import st_folium
 
 st.set_page_config(page_title="FIREWATCH", layout="wide", initial_sidebar_state="expanded")
 
@@ -299,41 +301,42 @@ region_df = hotspots[
     (hotspots["grid_lon"] >= lon_min) & (hotspots["grid_lon"] <= lon_max)
 ]
 
-# ====================== PLOTLY MAP ======================
+# ====================== FOLIUM SATELLITE MAP ======================
 st.markdown(f"<h3 style='text-align: center;'>Map - {region_name} ({selected_year})</h3>", unsafe_allow_html=True)
 map_data = region_df[region_df["year"] == selected_year]
 
 if len(map_data) > 0:
-    map_df = map_data.sample(n=min(8000, len(map_data)), random_state=42)
+    map_df = map_data.sample(n=min(5000, len(map_data)), random_state=42)
     
     center_lat = (lat_min + lat_max) / 2
     center_lon = (lon_min + lon_max) / 2
     
-    # Using Plotly scatter_map for instant rendering
-    fig_map = px.scatter_map(
-        map_df,
-        lat="grid_lat",
-        lon="grid_lon",
-        zoom=zoom_level,
-        center={"lat": center_lat, "lon": center_lon},
-        color_discrete_sequence=["red"],
-        map_style="open-street-map", # Free, no API key needed
-        hover_data={
-            "grid_lat": ":.3f", 
-            "grid_lon": ":.3f", 
-            "year": True,
-            "harmonized_count": True
-        },
-        height=600
+    # Using Esri World Imagery for the satellite view
+    m = folium.Map(
+        location=[center_lat, center_lon],
+        zoom_start=zoom_level,
+        tiles="Esri World Imagery",
+        control_scale=True
     )
     
-    fig_map.update_traces(marker=dict(size=6, opacity=0.8))
-    # FIX: Removed the deprecated mapbox=dict() property here
-    fig_map.update_layout(
-        margin={"r":0,"t":0,"l":0,"b":0},
-        paper_bgcolor="#F5F0E6"
-    )
-    st.plotly_chart(fig_map, use_container_width=True)
+    for _, row in map_df.iterrows():
+        folium.CircleMarker(
+            location=[row.grid_lat, row.grid_lon],
+            radius=2.5,
+            color="red",
+            fill=True,
+            fill_color="red",
+            fill_opacity=0.85,
+            tooltip=(
+                f"Lat: {row.grid_lat:.3f}<br>"
+                f"Lon: {row.grid_lon:.3f}<br>"
+                f"Year: {int(row.year)}<br>"
+                f"Fires: {int(row.harmonized_count)}"
+            )
+        ).add_to(m)
+        
+    # returned_objects=[] prevents the infinite loading loop on Posit
+    st_folium(m, height=600, use_container_width=True, returned_objects=[])
 else:
     st.warning(f"No data available for {region_name} in {selected_year}.")
 

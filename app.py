@@ -168,10 +168,10 @@ with col2:
     pivot = monthly.pivot(index="year", columns="month", values="harmonized_count")
     pivot = pivot.reindex(index=all_years, columns=all_months).fillna(0).astype(int)
     
-    # Build Heatmap with explicit full month names
+    # Build Heatmap
     fig_calendar = go.Figure(data=go.Heatmap(
         z=pivot.values,
-        x=["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
+        x=["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
         y=[str(y) for y in pivot.index],
         colorscale="YlOrRd", 
         xgap=3,
@@ -183,7 +183,7 @@ with col2:
             title="Intensity", 
             thickness=15, 
             len=0.8,
-            x=1.05, # Move strip slightly right
+            x=1.05,
             y=0.5,
             tickformat=",d"
         )
@@ -203,52 +203,76 @@ with col2:
         plot_bgcolor="#F5F0E6",
         font=dict(family="Times New Roman", color="#1E3B2F"),
         xaxis=dict(
-            side="top", # Months clearly labeled on top
+            side="top",
             showgrid=False,
             zeroline=False,
-            tickfont=dict(size=12, color="#1E3B2F", weight="bold") # Made bold so it's visible
+            tickfont=dict(size=12, color="#1E3B2F", weight="bold")
         ),
         yaxis=dict(
-            autorange="reversed", # Years go top-down
+            autorange="reversed",
             showgrid=False,
             zeroline=False,
-            tickfont=dict(size=13, color="#1E3B2F", weight="bold"), # Made bold so it's visible
+            tickfont=dict(size=13, color="#1E3B2F", weight="bold"),
             title="Year",
             type="category"
         ),
-        margin=dict(l=60, r=10, t=50, b=20) # Increased top and left margins
+        margin=dict(l=60, r=10, t=50, b=20)
     )
     st.plotly_chart(fig_calendar, use_container_width=True)
 
 # 7. ANALYTICS GRAPH
 if show_graph:
     st.markdown("---")
-    st.markdown("<h3 style='text-align: center;'>Yearly Fire Trend</h3>", unsafe_allow_html=True)
+    st.markdown("<h3 style='text-align: center;'>Analytics Graph</h3>", unsafe_allow_html=True)
     yearly_totals = region_df.groupby("year")["harmonized_count"].sum().reset_index()
     yearly_totals["year"] = yearly_totals["year"].astype(int)
     yearly_totals["harmonized_count"] = yearly_totals["harmonized_count"].astype(int)
 
-    fig_trend = px.area(
+    # Changed to a line chart with markers to clearly show data points on the grid
+    fig_trend = px.line(
         yearly_totals, 
         x="year", 
         y="harmonized_count", 
+        markers=True,
         color_discrete_sequence=["#1E3B2F"] 
     )
 
+    # Add a subtle fill under the line while keeping the line strong
     fig_trend.update_traces(
-        line=dict(width=4),
-        fillcolor="rgba(30, 59, 47, 0.4)"
+        fill='tozeroy',
+        fillcolor='rgba(30, 59, 47, 0.15)',
+        line=dict(width=3),
+        marker=dict(size=8, color="#1E3B2F")
     )
 
+    # Put the graph inside a gridlined box with specific axis names
     fig_trend.update_layout(
         xaxis_title="<b>Year</b>",
-        yaxis_title="<b>Total Fire Detections</b>",
+        yaxis_title="<b>Harmonized Count</b>",
         paper_bgcolor="#F5F0E6",
         plot_bgcolor="#F5F0E6",
         font=dict(family="Times New Roman", color="#1E3B2F", size=14),
-        margin=dict(l=50, r=20, t=30, b=20),
-        height=350,
-        yaxis=dict(tickformat=",d")
+        margin=dict(l=60, r=30, t=40, b=40),
+        height=400,
+        xaxis=dict(
+            showgrid=True,
+            gridcolor='#C8B48A', # Tan grid lines
+            showline=True,
+            linewidth=2,
+            linecolor='#1E3B2F',
+            mirror=True, # Creates the box
+            tickfont=dict(color="#1E3B2F", size=12)
+        ),
+        yaxis=dict(
+            showgrid=True,
+            gridcolor='#C8B48A',
+            showline=True,
+            linewidth=2,
+            linecolor='#1E3B2F',
+            mirror=True, # Creates the box
+            tickformat=",d",
+            tickfont=dict(color="#1E3B2F", size=12)
+        )
     )
 
     selected_count = int(yearly_totals[yearly_totals["year"] == selected_year]["harmonized_count"].values[0])

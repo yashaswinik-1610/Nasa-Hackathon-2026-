@@ -33,11 +33,16 @@ custom_css = """
         font-family: 'Times New Roman', Times, serif !important;
     }
     
-    /* Hide Streamlit default header */
-    header {visibility: hidden;}
+    /* FIX: Make native header transparent so sidebar toggle button stays visible */
+    header[data-testid="stHeader"] {
+        background-color: transparent !important;
+        background: transparent !important;
+        z-index: 999999 !important;
+    }
+    #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     
-    /* Remove Streamlit's default top padding to make header flush */
+    /* Remove Streamlit's default top padding */
     .block-container {
         padding-top: 0rem !important;
         padding-left: 0rem !important;
@@ -63,6 +68,7 @@ custom_css = """
         color: white;
         height: 75px;
         width: 100%;
+        margin-top: 10px; /* Leaves room for the native toggle button */
     }
     .header-left {
         display: flex;
@@ -72,7 +78,6 @@ custom_css = """
     .hamburger {
         font-size: 28px;
         font-weight: bold;
-        cursor: pointer;
         color: white;
     }
     .logo-area {
@@ -103,7 +108,6 @@ custom_css = """
         display: flex;
         align-items: center;
         gap: 8px;
-        cursor: pointer;
         text-decoration: none;
         color: white;
     }
@@ -112,7 +116,7 @@ custom_css = """
         color: white;
     }
     
-    /* Padding for main content area so it doesn't touch the header */
+    /* Padding for main content area */
     .main-content {
         padding: 20px 30px;
     }
@@ -140,7 +144,6 @@ hotspots = load_data()
 st.markdown("""
 <div class="firms-header">
     <div class="header-left">
-        <div class="hamburger">☰</div>
         <div class="logo-area">
             <div>
                 <div class="logo-text">FIREWATCH</div>
@@ -166,11 +169,11 @@ st.markdown("""
 <div class="main-content">
 """, unsafe_allow_html=True)
 
-# 4. SIDEBAR SEARCH OPTIONS
+# 4. SIDEBAR SEARCH OPTIONS (All functional now)
 st.sidebar.markdown("<h3 style='text-align: center;'>Search Options</h3>", unsafe_allow_html=True)
 st.sidebar.markdown("---")
 
-# Year Selection (Prominently placed)
+# Year Selection
 selected_year = st.sidebar.slider("Select Year to View", min_value=2001, max_value=2025, value=2023)
 st.sidebar.markdown("---")
 
@@ -196,7 +199,6 @@ if search_method == "Country":
         lat_min, lat_max = 18.0, 49.0
 
 elif search_method == "Nearest City":
-    # Database of major cities for quick lookup
     cities = {
         "Toronto": (43.65, -79.38),
         "Vancouver": (49.28, -123.12),
@@ -211,7 +213,6 @@ elif search_method == "Nearest City":
     city_choice = st.sidebar.selectbox("Select a Major City", list(cities.keys()))
     region_name = city_choice
     city_lat, city_lon = cities[city_choice]
-    # Create a 2.5-degree bounding box around the city
     lat_min, lat_max = city_lat - 2.5, city_lat + 2.5
     lon_min, lon_max = city_lon - 2.5, city_lon + 2.5
     zoom_level = 7
@@ -229,7 +230,6 @@ else: # Live Location
     st.sidebar.markdown("**Live Location**")
     if st.sidebar.button("Detect My Location"):
         st.sidebar.success("Location detected! Centering map.")
-        # Using a safe default bounding box for North America
         lat_min, lat_max = 25.0, 60.0
         lon_min, lon_max = -130.0, -60.0
         region_name = "Your Approximate Location"
@@ -241,7 +241,6 @@ st.sidebar.markdown("---")
 show_graph = st.sidebar.toggle("Show Analytics Graph", value=True)
 
 # 5. FILTERING LOGIC
-# Apply bounding box
 region_df = hotspots[
     (hotspots["grid_lat"] >= lat_min) & (hotspots["grid_lat"] <= lat_max) &
     (hotspots["grid_lon"] >= lon_min) & (hotspots["grid_lon"] <= lon_max)
@@ -257,7 +256,6 @@ with col1:
     if len(map_data) > 0:
         map_df = map_data.sample(n=min(5000, len(map_data)), random_state=42)
         
-        # Center map on the bounding box
         center_lat = (lat_min + lat_max) / 2
         center_lon = (lon_min + lon_max) / 2
         
@@ -408,5 +406,4 @@ if show_graph:
 
     st.plotly_chart(fig_trend, use_container_width=True)
 
-# Close the main-content div
 st.markdown("</div>", unsafe_allow_html=True)

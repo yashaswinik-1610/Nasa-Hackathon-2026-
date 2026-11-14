@@ -12,7 +12,9 @@ st.set_page_config(page_title="Harmonized Fire Calendar", layout="wide")
 def load_data():
    
     parquet_file = "harmonized_hotspots_canada_us.parquet"
-    file_id = "https://1drv.ms/u/c/4826d53bfeb318d0/IQBS98wZJGJbQ4Ej4h1gBFdzAWOQA-aHyRTJg1pi2HjQwkU?e=C9VSfx" 
+    
+   
+    file_id = "1L23_KvxHTAc_noGlp3z2j4ZVK-n7pmf_" 
     
     if not os.path.exists(parquet_file):
         url = f"https://drive.google.com/uc?id={file_id}"
@@ -20,7 +22,6 @@ def load_data():
     
     hotspots = pd.read_parquet(parquet_file)
     
-   
     monthly = pd.read_csv("processed_data/harmonized_monthly_summary.csv")
     
     return hotspots, monthly

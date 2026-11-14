@@ -25,8 +25,8 @@ custom_css = """
     /* --- SIDEBAR FLOATING & CROPPING --- */
     [data-testid="stSidebar"] {
         background-color: #1E3B2F !important;
-        height: 85vh !important; /* Crops the bottom */
-        margin-top: 85px !important; /* Starts exactly below the header */
+        height: 85vh !important;
+        margin-top: 85px !important;
         margin-left: 10px !important;
         border-radius: 15px !important;
         border: 1px solid #7F8C6A !important;
@@ -51,8 +51,8 @@ custom_css = """
         font-weight: bold !important;
     }
     
-    /* --- CUSTOM TOGGLE BUTTON IN HEADER --- */
-    /* Hide the default SVG icons and text */
+    /* --- FIXED TOGGLE BUTTON IN HEADER --- */
+    /* Hide the default Streamlit arrows */
     [data-testid="stSidebarCollapseButton"] span,
     [data-testid="collapsedControl"] span,
     [data-testid="stSidebarCollapseButton"] svg,
@@ -60,13 +60,13 @@ custom_css = """
         display: none !important;
     }
     
-    /* Position the toggle button in the red header */
+    /* Position and style the toggle buttons to look like a hamburger menu */
     [data-testid="stSidebarCollapseButton"],
     [data-testid="collapsedControl"] {
         position: fixed !important;
-        top: 35px !important; /* Centers it vertically in the 75px header */
+        top: 22px !important;
         left: 20px !important;
-        z-index: 1000000 !important;
+        z-index: 9999999 !important;
         background-color: transparent !important;
         border: none !important;
         display: flex !important;
@@ -75,26 +75,13 @@ custom_css = """
         cursor: pointer !important;
     }
     
-    /* Draw the 3 white dashed lines */
+    /* The hamburger icon (3 lines) */
     [data-testid="stSidebarCollapseButton"]::before,
     [data-testid="collapsedControl"]::before {
-        content: "";
-        display: block;
-        width: 22px;
-        height: 14px;
-        border-top: 3px dashed white;
-        border-bottom: 3px dashed white;
-    }
-    [data-testid="stSidebarCollapseButton"]::after,
-    [data-testid="collapsedControl"]::after {
-        content: "";
-        display: block;
-        width: 22px;
-        border-top: 3px dashed white;
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
+        content: "☰" !important;
+        font-size: 32px !important;
+        color: white !important;
+        font-weight: bold !important;
     }
 
     /* Make native header transparent */
@@ -124,14 +111,14 @@ custom_css = """
     /* --- CUSTOM HEADER CSS --- */
     .firms-header {
         background-color: #c90000;
-        padding: 0px 20px 0px 60px; /* Added left padding for toggle button */
+        padding: 0px 20px 0px 70px; /* Extra left padding for the hamburger */
         display: flex;
         align-items: center;
         justify-content: space-between;
         color: white;
         height: 75px;
         width: 100%;
-        margin-top: 0px; /* Flush with top */
+        margin-top: 0px;
     }
     .header-left {
         display: flex;
@@ -228,14 +215,12 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # 4. SIDEBAR SEARCH OPTIONS
-# Search Bar for Year
 available_years = [str(y) for y in sorted(hotspots["year"].unique(), reverse=True)]
 selected_year_str = st.sidebar.selectbox("Search Year", available_years)
 selected_year = int(selected_year_str)
 
 st.sidebar.markdown("---")
 
-# Search Method Selection
 search_method = st.sidebar.radio(
     "Search Method", 
     ["Country", "Nearest City", "Coordinates (Lat/Lon)", "Live Location"]
@@ -311,30 +296,32 @@ with col1:
     map_data = region_df[region_df["year"] == selected_year]
     
     if len(map_data) > 0:
-        map_df = map_data.sample(n=min(5000, len(map_data)), random_state=42)
-        
-        center_lat = (lat_min + lat_max) / 2
-        center_lon = (lon_min + lon_max) / 2
-        
-        m = folium.Map(location=[center_lat, center_lon], zoom_start=zoom_level, tiles="Esri World Imagery")
-        
-        for _, row in map_df.iterrows():
-            folium.CircleMarker(
-                location=[row.grid_lat, row.grid_lon],
-                radius=2, 
-                color="red",
-                fill=True, 
-                fill_color="red",  
-                fill_opacity=0.9,
-                tooltip=(
-                    f"Lat: {row.grid_lat:.3f}<br>"
-                    f"Lon: {row.grid_lon:.3f}<br>"
-                    f"Year: {int(row.year)}<br>"
-                    f"Fires: {int(row.harmonized_count)}"
-                )
-            ).add_to(m)
+        # Added spinner to fix blank map loading
+        with st.spinner("Loading Map..."):
+            map_df = map_data.sample(n=min(5000, len(map_data)), random_state=42)
             
-        st_folium(m, height=500, use_container_width=True)
+            center_lat = (lat_min + lat_max) / 2
+            center_lon = (lon_min + lon_max) / 2
+            
+            m = folium.Map(location=[center_lat, center_lon], zoom_start=zoom_level, tiles="Esri World Imagery")
+            
+            for _, row in map_df.iterrows():
+                folium.CircleMarker(
+                    location=[row.grid_lat, row.grid_lon],
+                    radius=2, 
+                    color="red",
+                    fill=True, 
+                    fill_color="red",  
+                    fill_opacity=0.9,
+                    tooltip=(
+                        f"Lat: {row.grid_lat:.3f}<br>"
+                        f"Lon: {row.grid_lon:.3f}<br>"
+                        f"Year: {int(row.year)}<br>"
+                        f"Fires: {int(row.harmonized_count)}"
+                    )
+                ).add_to(m)
+                
+            st_folium(m, height=500, use_container_width=True)
     else:
         st.warning(f"No data available for {region_name} in {selected_year}.")
 

@@ -7,7 +7,7 @@ import folium
 from streamlit_folium import st_folium
 
 # 1. PAGE CONFIGURATION & CUSTOM CSS
-st.set_page_config(page_title="FIRMS Fire Calendar", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="FireWatch", layout="wide", initial_sidebar_state="expanded")
 
 custom_css = """
 <style>
@@ -33,9 +33,17 @@ custom_css = """
         font-family: 'Times New Roman', Times, serif !important;
     }
     
-    /* Hide Streamlit default header and footer */
+    /* Hide Streamlit default header */
     header {visibility: hidden;}
     footer {visibility: hidden;}
+    
+    /* Remove Streamlit's default top padding to make header flush */
+    .block-container {
+        padding-top: 0rem !important;
+        padding-left: 0rem !important;
+        padding-right: 0rem !important;
+        max-width: 100% !important;
+    }
     
     /* Style all text to be dark green */
     h1, h2, h3, h4, h5, h6, p, label {
@@ -45,9 +53,7 @@ custom_css = """
         color: #F5F0E6 !important;
     }
     
-    /* --- CUSTOM FIRMS HEADER CSS --- */
-    .block-container {padding-top: 0rem !important;}
-    
+    /* --- CUSTOM HEADER CSS --- */
     .firms-header {
         background-color: #c90000;
         padding: 0px 20px;
@@ -55,10 +61,9 @@ custom_css = """
         align-items: center;
         justify-content: space-between;
         color: white;
-        font-family: 'Arial', sans-serif;
-        height: 70px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-        margin-bottom: 20px;
+        height: 75px;
+        /* Removed shadow and margins to make it blend in */
+        width: 100%;
     }
     .header-left {
         display: flex;
@@ -69,6 +74,7 @@ custom_css = """
         font-size: 28px;
         font-weight: bold;
         cursor: pointer;
+        color: white;
     }
     .logo-area {
         display: flex;
@@ -86,16 +92,19 @@ custom_css = """
         font-size: 11px;
         font-weight: bold;
         letter-spacing: 1px;
+        color: white;
     }
     .logo-text {
         font-size: 26px;
         font-weight: bold;
         line-height: 1;
         letter-spacing: 1px;
+        color: white;
     }
     .logo-subtext {
         font-size: 13px;
         margin-top: 2px;
+        color: white;
     }
     .header-right {
         display: flex;
@@ -115,6 +124,11 @@ custom_css = """
     .header-item:hover {
         opacity: 0.8;
         color: white;
+    }
+    
+    /* Padding for main content area so it doesn't touch the header */
+    .main-content {
+        padding: 20px 30px;
     }
 </style>
 """
@@ -136,7 +150,7 @@ def load_data():
 
 hotspots = load_data()
 
-# 3. INJECT CUSTOM FIRMS HEADER
+# 3. INJECT CUSTOM HEADER
 st.markdown("""
 <div class="firms-header">
     <div class="header-left">
@@ -144,8 +158,8 @@ st.markdown("""
         <div class="logo-area">
             <div class="logo-circle">NASA</div>
             <div>
-                <div class="logo-text">FIRMS</div>
-                <div class="logo-subtext">Fire Information for Resource Management System</div>
+                <div class="logo-text">FIREWATCH</div>
+                <div class="logo-subtext">Satellite Fire Detection System</div>
             </div>
         </div>
     </div>
@@ -164,6 +178,7 @@ st.markdown("""
         </div>
     </div>
 </div>
+<div class="main-content">
 """, unsafe_allow_html=True)
 
 # 4. SIDEBAR LAYOUT (Search Options)
@@ -355,3 +370,6 @@ if show_graph:
     )
 
     st.plotly_chart(fig_trend, use_container_width=True)
+
+# Close the main-content div
+st.markdown("</div>", unsafe_allow_html=True)

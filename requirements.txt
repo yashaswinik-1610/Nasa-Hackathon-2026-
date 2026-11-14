@@ -4,4 +4,4 @@ plotly
 folium
 streamlit-folium
 pyarrow
-gdown
+gdown==4.7.1

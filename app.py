@@ -5,7 +5,7 @@ import plotly.express as px
 import folium
 from streamlit_folium import st_folium
 
-# PAGE CONFIGURATION & CUSTOM CSS (Colors & Fonts)
+# 1. PAGE CONFIGURATION & CUSTOM CSS (Colors & Fonts)
 st.set_page_config(page_title="Fire Hotspot Calendar", layout="wide")
 
 custom_css = """
@@ -65,27 +65,24 @@ custom_css = """
 """
 st.markdown(custom_css, unsafe_allow_html=True)
 
-
+# 2. LOAD DATA FROM YOUR GITHUB FOLDER
 @st.cache_data
 def load_data():
-  
-    parquet_file = "harmonized_hotspots_canada_us.parquet"
     
-    if not os.path.exists(parquet_file):
-        st.error(f"File not found: {parquet_file}. Please make sure it is uploaded to your GitHub repository.")
+    parquet_file = "Processed Data/harmonized_hotspots_canada_us.parquet"
+    monthly_file = "Processed Data/harmonized_monthly_summary.csv"
+    
+    try:
+        hotspots = pd.read_parquet(parquet_file)
+        monthly = pd.read_csv(monthly_file)
+        return hotspots, monthly
+    except Exception as e:
+        st.error(f"Error loading data. Please check your folder paths. Details: {e}")
         st.stop()
 
-    hotspots = pd.read_parquet(parquet_file)
-    monthly = pd.read_csv("processed_data/harmonized_monthly_summary.csv")
-    return hotspots, monthly
+hotspots, monthly = load_data()
 
-try:
-    hotspots, monthly = load_data()
-except Exception as e:
-    st.error(f"Error loading data: {e}")
-    st.stop()
-
-# SIDEBAR LAYOUT (Matches your wireframe)
+# 3. SIDEBAR LAYOUT 
 st.sidebar.markdown("<h1 style='text-align: center; font-size: 2em;'>Fire Analytics</h1>", unsafe_allow_html=True)
 st.sidebar.markdown("---")
 
@@ -98,7 +95,7 @@ search_query = st.sidebar.text_input("Search by Admin (Filter by Year)")
 # Country Name
 country = st.sidebar.selectbox("Select Country", ["All (Canada + US)", "Canada", "United States"])
 
-# Latitude & Longitude (Made as a pop-up/expander to save space)
+# Latitude & Longitude (Pop-up motion)
 with st.sidebar.expander("Latitude & Longitude (Bounding Box)"):
     lat_min = st.number_input("Min Latitude", value=18.0, step=1.0)
     lat_max = st.number_input("Max Latitude", value=84.0, step=1.0)
@@ -121,7 +118,7 @@ st.sidebar.markdown("---")
 st.sidebar.markdown("### About")
 st.sidebar.info("This tool harmonizes MODIS and VIIRS satellite data to provide a continuous, sensor-agnostic view of fire activity across Canada and the US from 2001 to 2025.")
 
-# FILTERING LOGIC
+# 4. FILTERING LOGIC
 if country == "Canada":
     filtered_hotspots = hotspots[hotspots["grid_lat"] > 49.0]
 elif country == "United States":
@@ -139,7 +136,7 @@ filtered_hotspots = filtered_hotspots[
 if search_query.isdigit():
     filtered_hotspots = filtered_hotspots[filtered_hotspots["year"] == int(search_query)]
 
-# MAIN DASHBOARD LAYOUT
+# 5. MAIN DASHBOARD LAYOUT
 st.title("Harmonized Fire Hotspot Calendar")
 st.write(f"**Currently viewing:** {country}")
 
@@ -163,7 +160,7 @@ with col1:
                 fill=True, 
                 fill_color="#C8B48A",  # Tan/Beige
                 fill_opacity=0.8,
-                # This adds the pop-up motion effect
+                # Pop-up motion effect
                 tooltip=f"Year: {row.year}<br>Fires: {row.harmonized_count}"
             ).add_to(m)
             

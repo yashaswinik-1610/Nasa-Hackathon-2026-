@@ -22,20 +22,18 @@ custom_css = """
         color: #1E3B2F !important;
     }
     
-    /* --- SIDEBAR CROPPING & STYLING --- */
+    /* --- SIDEBAR FLOATING & CROPPING --- */
     [data-testid="stSidebar"] {
         background-color: #1E3B2F !important;
-        /* Crop from top and bottom */
-        height: 88vh !important;
-        margin-top: 5vh !important;
-        margin-bottom: 5vh !important;
+        height: 85vh !important; /* Crops the bottom */
+        margin-top: 85px !important; /* Starts exactly below the header */
         margin-left: 10px !important;
         border-radius: 15px !important;
         border: 1px solid #7F8C6A !important;
         box-shadow: 0 4px 10px rgba(0,0,0,0.3) !important;
     }
     
-    /* Ensure sidebar content scrolls if it gets too long */
+    /* Sidebar content scrolling */
     [data-testid="stSidebar"] > div:first-child {
         height: 100% !important;
         overflow-y: auto !important;
@@ -53,7 +51,7 @@ custom_css = """
         font-weight: bold !important;
     }
     
-    /* --- CUSTOM TOGGLE BUTTON (3 THICK DASHED LINES) --- */
+    /* --- CUSTOM TOGGLE BUTTON IN HEADER --- */
     /* Hide the default SVG icons and text */
     [data-testid="stSidebarCollapseButton"] span,
     [data-testid="collapsedControl"] span,
@@ -62,59 +60,44 @@ custom_css = """
         display: none !important;
     }
     
-    /* Draw the dashed lines */
+    /* Position the toggle button in the red header */
+    [data-testid="stSidebarCollapseButton"],
+    [data-testid="collapsedControl"] {
+        position: fixed !important;
+        top: 35px !important; /* Centers it vertically in the 75px header */
+        left: 20px !important;
+        z-index: 1000000 !important;
+        background-color: transparent !important;
+        border: none !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        cursor: pointer !important;
+    }
+    
+    /* Draw the 3 white dashed lines */
     [data-testid="stSidebarCollapseButton"]::before,
     [data-testid="collapsedControl"]::before {
         content: "";
         display: block;
-        width: 20px;
+        width: 22px;
         height: 14px;
-        border-top: 3px dashed #F5F0E6;
-        border-bottom: 3px dashed #F5F0E6;
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
+        border-top: 3px dashed white;
+        border-bottom: 3px dashed white;
     }
     [data-testid="stSidebarCollapseButton"]::after,
     [data-testid="collapsedControl"]::after {
         content: "";
         display: block;
-        width: 20px;
-        border-top: 3px dashed #F5F0E6;
+        width: 22px;
+        border-top: 3px dashed white;
         position: absolute;
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
     }
-    
-    /* Style the button container */
-    [data-testid="stSidebarCollapseButton"],
-    [data-testid="collapsedControl"] {
-        background-color: #1E3B2F !important;
-        border-radius: 8px !important;
-        width: 40px !important;
-        height: 40px !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        position: absolute !important;
-        z-index: 999999 !important;
-        border: 1px solid #7F8C6A !important;
-    }
-    
-    /* Position the close button inside the sidebar */
-    [data-testid="stSidebarCollapseButton"] {
-        top: 10px !important;
-        right: 10px !important;
-    }
-    /* Position the open button on the main page */
-    [data-testid="collapsedControl"] {
-        top: 15px !important;
-        left: 15px !important;
-    }
 
-    /* Make native header transparent so the open button is visible */
+    /* Make native header transparent */
     header[data-testid="stHeader"] {
         background-color: transparent !important;
         background: transparent !important;
@@ -141,14 +124,14 @@ custom_css = """
     /* --- CUSTOM HEADER CSS --- */
     .firms-header {
         background-color: #c90000;
-        padding: 0px 20px;
+        padding: 0px 20px 0px 60px; /* Added left padding for toggle button */
         display: flex;
         align-items: center;
         justify-content: space-between;
         color: white;
         height: 75px;
         width: 100%;
-        margin-top: 10px;
+        margin-top: 0px; /* Flush with top */
     }
     .header-left {
         display: flex;
@@ -245,7 +228,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # 4. SIDEBAR SEARCH OPTIONS
-# Search Bar for Year (Selectbox allows typing to search)
+# Search Bar for Year
 available_years = [str(y) for y in sorted(hotspots["year"].unique(), reverse=True)]
 selected_year_str = st.sidebar.selectbox("Search Year", available_years)
 selected_year = int(selected_year_str)
@@ -416,7 +399,7 @@ with col2:
     )
     st.plotly_chart(fig_calendar, use_container_width=True)
 
-# 7. ANALYTICS GRAPH (Always visible)
+# 7. ANALYTICS GRAPH
 st.markdown("---")
 st.markdown(f"<h3 style='text-align: center;'>Analytics Graph - {region_name}</h3>", unsafe_allow_html=True)
 yearly_totals = region_df.groupby("year")["harmonized_count"].sum().reset_index()

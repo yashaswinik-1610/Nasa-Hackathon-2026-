@@ -48,14 +48,13 @@ custom_css = """
 """
 st.markdown(custom_css, unsafe_allow_html=True)
 
-# 2. LOAD DATA (Force year and count to be integers)
+# 2. LOAD DATA
 @st.cache_data
 def load_data():
     parquet_file = "Processed Data/harmonized_hotspots_canada_us.parquet"
     cols = ["grid_lat", "grid_lon", "year", "month", "harmonized_count"]
     try:
         df = pd.read_parquet(parquet_file, columns=cols)
-        # Force integer types to remove .0 decimals
         df["year"] = df["year"].astype(int)
         df["harmonized_count"] = df["harmonized_count"].astype(int)
         return df
@@ -137,7 +136,6 @@ with col1:
     if len(map_data) > 0:
         map_df = map_data.sample(n=min(5000, len(map_data)), random_state=42)
         
-        # Satellite Map (NASA FIRMS Style)
         m = folium.Map(location=[45, -100], zoom_start=3, tiles="Esri World Imagery")
         
         for _, row in map_df.iterrows():
@@ -163,17 +161,14 @@ with col1:
 with col2:
     st.markdown("<h3 style='text-align: center;'>Burning Calendar</h3>", unsafe_allow_html=True)
     
-    # Generate complete matrix
     monthly = region_df.groupby(["year", "month"])["harmonized_count"].sum().reset_index()
-    
     all_years = list(range(2001, 2026))
     all_months = list(range(1, 13))
     
-    # Reindex and force to integer
     pivot = monthly.pivot(index="year", columns="month", values="harmonized_count")
     pivot = pivot.reindex(index=all_years, columns=all_months).fillna(0).astype(int)
     
-    # Build GitHub-style Heatmap (Horizontal)
+    # Build Heatmap
     fig_calendar = go.Figure(data=go.Heatmap(
         z=pivot.values,
         x=["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
@@ -183,18 +178,18 @@ with col2:
         ygap=3,
         zmin=0,
         zmax=int(pivot.values.max()),
-        hovertemplate="Year: %{y}<br>Month: %{x}<br>Fires: %{z}<extra></extra>",
+        # REMOVED month from the hover template
+        hovertemplate="Year: %{y}<br>Fires: %{z}<extra></extra>",
         colorbar=dict(
             title="Intensity", 
             thickness=15, 
             len=0.8,
             x=1.05,
             y=0.5,
-            tickformat=",d" # Force whole numbers on the color strip
+            tickformat=",d"
         )
     ))
 
-    # Highlight selected year
     year_index = list(pivot.index).index(selected_year)
     fig_calendar.add_shape(
         type="rect", 
@@ -209,7 +204,7 @@ with col2:
         plot_bgcolor="#F5F0E6",
         font=dict(family="Times New Roman", color="#1E3B2F"),
         xaxis=dict(
-            side="top",
+            side="top", # Months clearly labeled on top
             showgrid=False,
             zeroline=False,
             tickfont=dict(size=11)
@@ -220,7 +215,7 @@ with col2:
             zeroline=False,
             tickfont=dict(size=11),
             title="Year",
-            type="category" # Force axis to treat years as text, not decimals
+            type="category"
         ),
         margin=dict(l=50, r=10, t=40, b=20)
     )
@@ -234,7 +229,6 @@ if show_graph:
     yearly_totals["year"] = yearly_totals["year"].astype(int)
     yearly_totals["harmonized_count"] = yearly_totals["harmonized_count"].astype(int)
 
-    # Bold Area Chart
     fig_trend = px.area(
         yearly_totals, 
         x="year", 
@@ -255,7 +249,7 @@ if show_graph:
         font=dict(family="Times New Roman", color="#1E3B2F", size=14),
         margin=dict(l=50, r=20, t=30, b=20),
         height=350,
-        yaxis=dict(tickformat=",d") # Force whole numbers on Y axis
+        yaxis=dict(tickformat=",d")
     )
 
     selected_count = int(yearly_totals[yearly_totals["year"] == selected_year]["harmonized_count"].values[0])

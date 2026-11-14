@@ -9,7 +9,7 @@ from streamlit_folium import st_folium
 # 1. PAGE CONFIGURATION & CUSTOM CSS
 st.set_page_config(page_title="FIREWATCH", layout="wide", initial_sidebar_state="expanded")
 
-custom_css = """
+custom_css =
 <style>
     /* Font family */
     html, body, [class*="css"] {
@@ -182,7 +182,7 @@ custom_css = """
         padding: 20px 30px;
     }
 </style>
-"""
+
 st.markdown(custom_css, unsafe_allow_html=True)
 
 # 2. LOAD DATA

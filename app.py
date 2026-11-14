@@ -131,7 +131,8 @@ with col1:
     if len(map_data) > 0:
         map_df = map_data.sample(n=min(10000, len(map_data)), random_state=42)
         
-        fig_map = px.scatter_mapbox(
+        # --- FIX APPLIED HERE ---
+        fig_map = px.scatter_map(
             map_df,
             lat="grid_lat",
             lon="grid_lon",
@@ -144,7 +145,7 @@ with col1:
             color_discrete_sequence=["#ff7800"],
             zoom=3,
             center={"lat": 45, "lon": -100},
-            mapbox_style="open-street-map", 
+            map_style="open-street-map", 
             height=550
         )
         fig_map.update_layout(
@@ -168,8 +169,8 @@ with col2:
         x=pivot_table.columns, 
         y=pivot_table.index,   
         colorscale="YlOrRd", 
-        xgap=2,  # Creates the grid lines between squares
-        ygap=2,  # Creates the grid lines between squares
+        xgap=2,
+        ygap=2,
         hoverongaps=False,
         colorbar=dict(title="Intensity", thickness=15)
     ))
@@ -192,7 +193,7 @@ with col2:
             tickmode="array",
             tickvals=list(range(1, 13)),
             ticktext=["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
-            side="top", # Months on top like GitHub
+            side="top",
             showgrid=False,
             zeroline=False
         ),

@@ -7,7 +7,7 @@ import folium
 from streamlit_folium import st_folium
 
 # 1. PAGE CONFIGURATION & CUSTOM CSS
-st.set_page_config(page_title="FireWatch", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="FIREWATCH", layout="wide", initial_sidebar_state="expanded")
 
 custom_css = """
 <style>
@@ -62,7 +62,6 @@ custom_css = """
         justify-content: space-between;
         color: white;
         height: 75px;
-        /* Removed shadow and margins to make it blend in */
         width: 100%;
     }
     .header-left {
@@ -80,19 +79,6 @@ custom_css = """
         display: flex;
         align-items: center;
         gap: 12px;
-    }
-    .logo-circle {
-        width: 45px;
-        height: 45px;
-        border: 2px solid white;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 11px;
-        font-weight: bold;
-        letter-spacing: 1px;
-        color: white;
     }
     .logo-text {
         font-size: 26px;
@@ -150,13 +136,12 @@ def load_data():
 
 hotspots = load_data()
 
-# 3. INJECT CUSTOM HEADER
+# 3. INJECT CUSTOM HEADER (No NASA Logo)
 st.markdown("""
 <div class="firms-header">
     <div class="header-left">
         <div class="hamburger">☰</div>
         <div class="logo-area">
-            <div class="logo-circle">NASA</div>
             <div>
                 <div class="logo-text">FIREWATCH</div>
                 <div class="logo-subtext">Satellite Fire Detection System</div>
@@ -181,50 +166,82 @@ st.markdown("""
 <div class="main-content">
 """, unsafe_allow_html=True)
 
-# 4. SIDEBAR LAYOUT (Search Options)
-st.sidebar.markdown("<h3 style='text-align: center;'>Filters</h3>", unsafe_allow_html=True)
+# 4. SIDEBAR SEARCH OPTIONS
+st.sidebar.markdown("<h3 style='text-align: center;'>Search Options</h3>", unsafe_allow_html=True)
 st.sidebar.markdown("---")
 
-country = st.sidebar.selectbox("Select Region", ["Canada", "United States"])
-selected_year = st.sidebar.slider("Select Year for Map", min_value=2001, max_value=2025, value=2023)
+# Search Method Selection
+search_method = st.sidebar.radio("Select Search Method", ["Country", "City (Nearest)", "Coordinates (Lat/Lon)"])
 
-st.sidebar.markdown("---")
-show_graph = st.sidebar.toggle("Show Analytics Graph", value=True)
-use_bbox = st.sidebar.toggle("Enable Bounding Box Filter")
-
+# Initialize default bounds (All Data)
 lat_min, lat_max = 18.0, 84.0
 lon_min, lon_max = -170.0, -50.0
+region_name = "All Data"
 
-if use_bbox:
-    st.sidebar.markdown("**Bounding Box Settings**")
+if search_method == "Country":
+    country = st.sidebar.selectbox("Select Region", ["Canada", "United States"])
+    region_name = country
+    if country == "Canada":
+        lat_min, lat_max = 49.0, 84.0
+    else:
+        lat_min, lat_max = 18.0, 49.0
+
+elif search_method == "City (Nearest)":
+    # A small database of major cities for demonstration
+    cities = {
+        "Toronto": (43.65, -79.38),
+        "Vancouver": (49.28, -123.12),
+        "Calgary": (51.05, -114.07),
+        "New York": (40.71, -74.00),
+        "Los Angeles": (34.05, -118.24),
+        "Seattle": (47.60, -122.33)
+    }
+    city_choice = st.sidebar.selectbox("Select a Major City", list(cities.keys()))
+    region_name = city_choice
+    city_lat, city_lon = cities[city_choice]
+    # Create a 2-degree bounding box around the city
+    lat_min, lat_max = city_lat - 2.0, city_lat + 2.0
+    lon_min, lon_max = city_lon - 2.0, city_lon + 2.0
+
+else:
+    st.sidebar.markdown("**Enter Coordinates**")
     lat_min = st.sidebar.number_input("Min Latitude", value=18.0, step=1.0)
     lat_max = st.sidebar.number_input("Max Latitude", value=84.0, step=1.0)
     lon_min = st.sidebar.number_input("Min Longitude", value=-170.0, step=1.0)
     lon_max = st.sidebar.number_input("Max Longitude", value=-50.0, step=1.0)
+    region_name = "Custom Area"
+
+st.sidebar.markdown("---")
+
+# Year Selection
+selected_year = st.sidebar.slider("Select Year to View", min_value=2001, max_value=2025, value=2023)
+
+st.sidebar.markdown("---")
+show_graph = st.sidebar.toggle("Show Analytics Graph", value=True)
 
 # 5. FILTERING LOGIC
-if country == "Canada":
-    region_df = hotspots[hotspots["grid_lat"] > 49.0]
-else:
-    region_df = hotspots[hotspots["grid_lat"] <= 49.0]
-
-if use_bbox:
-    region_df = region_df[
-        (region_df["grid_lat"] >= lat_min) & (region_df["grid_lat"] <= lat_max) &
-        (region_df["grid_lon"] >= lon_min) & (region_df["grid_lon"] <= lon_max)
-    ]
+# Apply bounding box
+region_df = hotspots[
+    (hotspots["grid_lat"] >= lat_min) & (hotspots["grid_lat"] <= lat_max) &
+    (hotspots["grid_lon"] >= lon_min) & (hotspots["grid_lon"] <= lon_max)
+]
 
 # 6. MAIN DASHBOARD LAYOUT
 col1, col2 = st.columns([1.3, 1])
 
 with col1:
-    st.markdown("<h3 style='text-align: center;'>Map</h3>", unsafe_allow_html=True)
+    st.markdown(f"<h3 style='text-align: center;'>Map - {region_name}</h3>", unsafe_allow_html=True)
     map_data = region_df[region_df["year"] == selected_year]
     
     if len(map_data) > 0:
         map_df = map_data.sample(n=min(5000, len(map_data)), random_state=42)
         
-        m = folium.Map(location=[45, -100], zoom_start=3, tiles="Esri World Imagery")
+        # Center map on the bounding box
+        center_lat = (lat_min + lat_max) / 2
+        center_lon = (lon_min + lon_max) / 2
+        zoom_level = 3 if search_method == "Country" else 6
+        
+        m = folium.Map(location=[center_lat, center_lon], zoom_start=zoom_level, tiles="Esri World Imagery")
         
         for _, row in map_df.iterrows():
             folium.CircleMarker(
@@ -244,7 +261,7 @@ with col1:
             
         st_folium(m, height=500, use_container_width=True)
     else:
-        st.warning(f"No data available for {country} in {selected_year}.")
+        st.warning(f"No data available for {region_name} in {selected_year}.")
 
 with col2:
     st.markdown("<h3 style='text-align: center;'>Burning Calendar</h3>", unsafe_allow_html=True)
@@ -310,7 +327,7 @@ with col2:
 # 7. ANALYTICS GRAPH
 if show_graph:
     st.markdown("---")
-    st.markdown("<h3 style='text-align: center;'>Analytics Graph</h3>", unsafe_allow_html=True)
+    st.markdown(f"<h3 style='text-align: center;'>Analytics Graph - {region_name}</h3>", unsafe_allow_html=True)
     yearly_totals = region_df.groupby("year")["harmonized_count"].sum().reset_index()
     yearly_totals["year"] = yearly_totals["year"].astype(int)
     yearly_totals["harmonized_count"] = yearly_totals["harmonized_count"].astype(int)

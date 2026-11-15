@@ -1,218 +1,88 @@
-import os
+from urllib.parse import quote
+
 import pandas as pd
 import streamlit as st
-import plotly.express as px
 import plotly.graph_objects as go
 import folium
 from streamlit_folium import st_folium
 
-st.set_page_config(page_title="FIREWATCH", layout="wide", initial_sidebar_state="expanded")
+# >>> Put your deployed app link here (used by the Share button) <<<
+APP_URL = "https://your-app-name.streamlit.app"
+PARQUET = "Processed Data/harmonized_hotspots_canada_us.parquet"
 
-custom_css = """
+st.set_page_config(page_title="FIREWATCH", layout="wide", initial_sidebar_state="collapsed")
+
+BASE_CSS = """
 <style>
-    html, body, [class*="css"] {
-        font-family: 'Times New Roman', Times, serif !important;
-    }
+html, body, [class*="css"] {font-family:'Times New Roman',Times,serif !important;}
+.stApp {background:#F5F0E6 !important;}
+.stApp, [data-testid="stAppViewContainer"], section.main {overflow:hidden !important;}
+header[data-testid="stHeader"], [data-testid="stToolbar"], [data-testid="stDecoration"],
+[data-testid="stSidebar"], [data-testid="stSidebarCollapsedControl"], [data-testid="collapsedControl"],
+[data-testid="stElementToolbar"], #MainMenu, footer {display:none !important;}
+.block-container {padding:0 !important; max-width:100% !important;}
 
-    .stApp {
-        background-color: #F5F0E6 !important;
-        color: #1E3B2F !important;
-    }
+/* red header */
+.firms-header {position:fixed; top:0; left:0; width:100%; height:85px; background:#c90000;
+  display:flex; align-items:center; padding:0 25px 0 80px; box-shadow:0 2px 8px rgba(0,0,0,.25); z-index:999999;}
+.logo-text {font-size:28px; font-weight:bold; letter-spacing:1px; color:#fff; line-height:1;}
+.logo-subtext {font-size:14px; margin-top:2px; color:#fff; opacity:.95;}
 
-    /* --- NEUTRALISE NATIVE HEADER (don't display:none it, the toggle lives inside it) --- */
-    header[data-testid="stHeader"] {
-        background: transparent !important;
-        height: 0 !important;
-        min-height: 0 !important;
-    }
-    [data-testid="stToolbar"], [data-testid="stDecoration"], [data-testid="stStatusWidget"] {
-        display: none !important;
-    }
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
+/* header buttons (real Streamlit buttons, so they actually work) */
+.st-key-menu_btn, .st-key-dl_btn, .st-key-share_btn, .st-key-about_btn {position:fixed; top:20px; z-index:1000001;}
+.st-key-menu_btn {left:18px;}
+.st-key-about_btn {right:25px;} .st-key-share_btn {right:150px;} .st-key-dl_btn {right:265px;}
+.st-key-menu_btn button, .st-key-dl_btn button, .st-key-share_btn button, .st-key-about_btn button {
+  background:transparent !important; border:0 !important; box-shadow:none !important; color:#fff !important;}
+.st-key-menu_btn button:hover, .st-key-dl_btn button:hover, .st-key-share_btn button:hover, .st-key-about_btn button:hover {
+  background:rgba(255,255,255,.18) !important;}
+.st-key-menu_btn button p {font:bold 32px Arial !important; color:#fff !important; line-height:1;}
+.st-key-dl_btn button p, .st-key-share_btn button p, .st-key-about_btn button p {
+  font-size:17px !important; font-weight:600 !important; color:#fff !important;}
 
-    /* --- REMOVE "VIEW FULLSCREEN / EXPAND" ON CHARTS --- */
-    [data-testid="stElementToolbar"],
-    button[title="View fullscreen"],
-    button[data-testid="StyledFullScreenButton"] {
-        display: none !important;
-    }
+/* map fills the whole canvas under the header */
+iframe[title="streamlit_folium.st_folium"] {position:fixed !important; top:85px; left:0; width:100vw !important;
+  height:calc(100vh - 85px) !important; z-index:1; border:0;}
 
-    /* --- MAIN CONTAINER PADDING --- */
-    .block-container {
-        padding-top: 100px !important;
-        padding-left: 20px !important;
-        padding-right: 20px !important;
-        max-width: 100% !important;
-    }
+/* floating filter panel */
+.st-key-filters_panel {position:fixed; top:100px; left:14px; width:270px; max-height:calc(100vh - 130px); overflow-y:auto;
+  background:#1E3B2F; border:1px solid #7F8C6A; border-radius:15px; padding:14px; z-index:1000; box-shadow:0 4px 12px rgba(0,0,0,.35);}
+.st-key-filters_panel *, .st-key-filters_panel label p {color:#F5F0E6 !important;}
+.st-key-filters_panel label p {font-size:1.1rem !important; font-weight:bold !important;}
 
-    /* --- FIXED RED HEADER --- */
-    .firms-header {
-        position: fixed !important;
-        top: 0 !important;
-        left: 0 !important;
-        width: 100% !important;
-        height: 85px !important;
-        background-color: #c90000 !important;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 0px 25px 0px 75px !important;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.25);
-        z-index: 999999 !important;
-    }
-
-    .logo-text {
-        font-size: 28px;
-        font-weight: bold;
-        line-height: 1;
-        letter-spacing: 1px;
-        color: white;
-        font-family: 'Times New Roman', Times, serif;
-    }
-    .logo-subtext {
-        font-size: 14px;
-        margin-top: 2px;
-        color: white;
-        opacity: 0.95;
-        font-family: 'Times New Roman', Times, serif;
-    }
-    .header-right {
-        display: flex;
-        align-items: center;
-        gap: 28px;
-        font-size: 17px;
-        font-weight: 600;
-    }
-    .header-item {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        text-decoration: none !important;
-        color: white !important;
-        padding: 8px 12px;
-        border-radius: 6px;
-        transition: background 0.2s;
-        font-family: 'Times New Roman', Times, serif;
-    }
-    .header-item:hover {
-        background-color: rgba(255,255,255,0.15);
-    }
-
-    /* --- SIDEBAR HAMBURGER (replaces the native arrow) --- */
-    [data-testid="stSidebarCollapseButton"],
-    [data-testid="stExpandSidebarButton"],
-    [data-testid="collapsedControl"] {
-        position: fixed !important;
-        top: 20px !important;
-        left: 20px !important;
-        width: 45px !important;
-        height: 45px !important;
-        z-index: 1000000 !important;
-        display: flex !important;
-        align-items: center;
-        justify-content: center;
-        border-radius: 8px !important;
-        background: transparent !important;
-    }
-    /* hide the native arrow icons but keep the real button clickable (invisible, full size) */
-    [data-testid="stSidebarCollapseButton"] svg,
-    [data-testid="stExpandSidebarButton"] svg,
-    [data-testid="collapsedControl"] svg,
-    [data-testid="stSidebarCollapseButton"] span,
-    [data-testid="stExpandSidebarButton"] span,
-    [data-testid="collapsedControl"] span {
-        display: none !important;
-    }
-    [data-testid="stSidebarCollapseButton"] button,
-    [data-testid="stExpandSidebarButton"],
-    [data-testid="collapsedControl"] button {
-        position: absolute !important;
-        inset: 0 !important;
-        width: 100% !important;
-        height: 100% !important;
-        opacity: 0 !important;
-        cursor: pointer !important;
-    }
-    [data-testid="stSidebarCollapseButton"]::before,
-    [data-testid="stExpandSidebarButton"]::before,
-    [data-testid="collapsedControl"]::before {
-        content: "☰";
-        font-size: 34px;
-        font-weight: bold;
-        line-height: 1;
-        color: white;
-        font-family: Arial, sans-serif;
-        pointer-events: none;   /* clicks fall through to the real button */
-    }
-    [data-testid="stSidebarCollapseButton"]:hover,
-    [data-testid="stExpandSidebarButton"]:hover,
-    [data-testid="collapsedControl"]:hover {
-        background-color: rgba(255,255,255,0.15) !important;
-    }
-
-    /* --- RIGHT PANEL TOGGLE BUTTON (key = toggle_charts) --- */
-    .st-key-toggle_charts button {
-        background-color: #1E3B2F !important;
-        border: 1px solid #7F8C6A !important;
-        border-radius: 8px !important;
-        padding: 4px 16px !important;
-    }
-    .st-key-toggle_charts button p {
-        color: #F5F0E6 !important;
-        font-size: 1.05rem !important;
-        font-weight: bold !important;
-    }
-    .st-key-toggle_charts button:hover {
-        background-color: #c90000 !important;
-    }
-
-    /* --- SIDEBAR STYLING --- */
-    [data-testid="stSidebar"] {
-        background-color: #1E3B2F !important;
-        height: 82vh !important;
-        margin-top: 95px !important;
-        margin-left: 10px !important;
-        border-radius: 15px !important;
-        border: 1px solid #7F8C6A !important;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.3) !important;
-        z-index: 100 !important;
-    }
-
-    [data-testid="stSidebar"] > div:first-child {
-        height: 100% !important;
-        overflow-y: auto !important;
-    }
-
-    [data-testid="stSidebar"] * {
-        color: #F5F0E6 !important;
-        font-family: 'Times New Roman', Times, serif !important;
-    }
-
-    [data-testid="stSidebar"] label p {
-        font-size: 1.15rem !important;
-        font-weight: bold !important;
-    }
-
-    /* General Text Color */
-    h1, h2, h3, h4, h5, h6, p, label {
-        color: #1E3B2F !important;
-    }
-    [data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2, [data-testid="stSidebar"] h3,
-    [data-testid="stSidebar"] p, [data-testid="stSidebar"] label {
-        color: #F5F0E6 !important;
-    }
+/* glassmorphism chart panel at the bottom */
+.st-key-charts_panel {position:fixed; bottom:16px; z-index:1000; padding:6px 16px 10px;
+  background:rgba(245,240,230,.50); backdrop-filter:blur(14px) saturate(160%); -webkit-backdrop-filter:blur(14px) saturate(160%);
+  border:1px solid rgba(255,255,255,.55); border-radius:18px; box-shadow:0 8px 32px rgba(0,0,0,.35);}
+.st-key-charts_panel h5 {text-align:center; margin:0; color:#1E3B2F !important;}
+.st-key-charts_btn {display:flex; justify-content:flex-end;}
+.st-key-charts_btn button {background:#1E3B2F !important; border:1px solid #7F8C6A !important; border-radius:8px !important; padding:2px 12px !important;}
+.st-key-charts_btn button p {color:#F5F0E6 !important; font-weight:bold !important;}
 </style>
 """
-st.markdown(custom_css, unsafe_allow_html=True)
+
+for key, default in (("show_filters", True), ("show_charts", True)):
+    st.session_state.setdefault(key, default)
+
+
+def flip(key):
+    st.session_state[key] = not st.session_state[key]
+
+
+# state-dependent CSS (keeps widget values alive while panels are hidden)
+dyn = f".st-key-charts_panel{{left:{300 if st.session_state.show_filters else 20}px;" \
+      f"{'right:20px;' if st.session_state.show_charts else 'right:auto;'}}}"
+if not st.session_state.show_filters:
+    dyn += ".st-key-filters_panel{display:none !important;}"
+if not st.session_state.show_charts:
+    dyn += ".st-key-charts_row{display:none !important;}"
+st.markdown(BASE_CSS + f"<style>{dyn}</style>", unsafe_allow_html=True)
 
 
 @st.cache_data
 def load_data():
-    parquet_file = "Processed Data/harmonized_hotspots_canada_us.parquet"
-    cols = ["grid_lat", "grid_lon", "year", "month", "harmonized_count"]
     try:
-        df = pd.read_parquet(parquet_file, columns=cols)
+        df = pd.read_parquet(PARQUET, columns=["grid_lat", "grid_lon", "year", "month", "harmonized_count"])
         df["year"] = df["year"].astype(int)
         df["harmonized_count"] = df["harmonized_count"].astype(int)
         return df
@@ -221,273 +91,133 @@ def load_data():
         st.stop()
 
 
+@st.cache_data
+def parquet_bytes():
+    with open(PARQUET, "rb") as f:
+        return f.read()
+
+
 hotspots = load_data()
 
-# Inject Fixed Header
-st.markdown("""
-<div class="firms-header">
-    <div class="logo-area">
-        <div>
-            <div class="logo-text">FIREWATCH</div>
-            <div class="logo-subtext">Satellite Fire Detection System</div>
-        </div>
-    </div>
-    <div class="header-right">
-        <a href="https://github.com/yashaswinik-1610/Nasa-Hackathon-2026-/raw/main/Processed%20Data/harmonized_hotspots_canada_us.parquet"
-           download class="header-item" target="_blank">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                <polyline points="7 10 12 15 17 10"></polyline>
-                <line x1="12" y1="15" x2="12" y2="3"></line>
-            </svg>
-            <span>Download</span>
-        </a>
-        <a href="https://connect.posit.cloud/" target="_blank" class="header-item">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="18" cy="5" r="3"></circle>
-                <circle cx="6" cy="12" r="3"></circle>
-                <circle cx="18" cy="19" r="3"></circle>
-                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
-                <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
-            </svg>
-            <span>Share</span>
-        </a>
-        <div class="header-item" title="This tool harmonizes MODIS and VIIRS satellite data to provide a continuous, sensor-agnostic view of fire activity across Canada and the US from 2001 to 2025.">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="10"></circle>
-                <line x1="12" y1="16" x2="12" y2="12"></line>
-                <line x1="12" y1="8" x2="12.01" y2="8"></line>
-            </svg>
-            <span>About</span>
-        </div>
-    </div>
-</div>
-""", unsafe_allow_html=True)
+# ---------------- header ----------------
+st.markdown("""<div class="firms-header"><div>
+<div class="logo-text">FIREWATCH</div><div class="logo-subtext">Satellite Fire Detection System</div>
+</div></div>""", unsafe_allow_html=True)
 
-# Sidebar Filters
-available_years = [str(y) for y in sorted(hotspots["year"].unique(), reverse=True)]
-selected_year_str = st.sidebar.selectbox("Search Year", available_years)
-selected_year = int(selected_year_str)
+st.button("☰", key="menu_btn", on_click=flip, args=("show_filters",), help="Show / hide filters")
+st.download_button("Download", data=parquet_bytes(), file_name="harmonized_hotspots_canada_us.parquet",
+                   mime="application/octet-stream", key="dl_btn", icon=":material/download:")
 
-st.sidebar.markdown("---")
 
-search_method = st.sidebar.radio(
-    "Search Method",
-    ["Country", "Nearest City", "Coordinates (Lat/Lon)", "Live Location"]
-)
+@st.dialog("Share FIREWATCH")
+def share_dialog():
+    st.write("Copy the link:")
+    st.code(APP_URL, language=None)
+    msg, u = quote("Explore wildfire activity across Canada and the US on FIREWATCH"), quote(APP_URL)
+    st.markdown(
+        f"[WhatsApp](https://wa.me/?text={msg}%20{u}) · [X](https://twitter.com/intent/tweet?text={msg}&url={u}) · "
+        f"[LinkedIn](https://www.linkedin.com/sharing/share-offsite/?url={u}) · [Email](mailto:?subject=FIREWATCH&body={msg}%20{u})")
 
-lat_min, lat_max = 18.0, 84.0
-lon_min, lon_max = -170.0, -50.0
+
+@st.dialog("About FIREWATCH")
+def about_dialog():
+    st.write("FIREWATCH harmonizes MODIS and VIIRS satellite data to give a continuous, sensor-agnostic view "
+             "of fire activity across Canada and the US from 2001 to 2025.")
+
+
+if st.button("Share", key="share_btn", icon=":material/share:"):
+    share_dialog()
+if st.button("About", key="about_btn", icon=":material/info:"):
+    about_dialog()
+
+# ---------------- filters ----------------
+CITIES = {"Toronto": (43.65, -79.38), "Vancouver": (49.28, -123.12), "Calgary": (51.05, -114.07),
+          "Montreal": (45.50, -73.57), "New York": (40.71, -74.00), "Los Angeles": (34.05, -118.24),
+          "Seattle": (47.60, -122.33), "Miami": (25.76, -80.19), "Chicago": (41.87, -87.62)}
+lat_min, lat_max, lon_min, lon_max = 18.0, 84.0, -170.0, -50.0
 region_name = "All Data"
-zoom_level = 3
 
-if search_method == "Country":
-    country = st.sidebar.selectbox("Select Region", ["Canada", "United States"])
-    region_name = country
-    zoom_level = 3
-    if country == "Canada":
-        lat_min, lat_max = 49.0, 84.0
+with st.container(key="filters_panel"):
+    selected_year = int(st.selectbox("Search Year", [str(y) for y in sorted(hotspots["year"].unique(), reverse=True)]))
+    st.markdown("---")
+    method = st.radio("Search Method", ["Country", "Nearest City", "Coordinates (Lat/Lon)", "Live Location"])
+
+    if method == "Country":
+        region_name = st.selectbox("Select Region", ["Canada", "United States"])
+        lat_min, lat_max = (49.0, 84.0) if region_name == "Canada" else (18.0, 49.0)
+    elif method == "Nearest City":
+        region_name = st.selectbox("Select a Major City", list(CITIES))
+        la, lo = CITIES[region_name]
+        lat_min, lat_max, lon_min, lon_max = la - 2.5, la + 2.5, lo - 2.5, lo + 2.5
+    elif method == "Coordinates (Lat/Lon)":
+        lat_min = st.number_input("Min Latitude", value=18.0, step=1.0)
+        lat_max = st.number_input("Max Latitude", value=84.0, step=1.0)
+        lon_min = st.number_input("Min Longitude", value=-170.0, step=1.0)
+        lon_max = st.number_input("Max Longitude", value=-50.0, step=1.0)
+        region_name = "Custom Area"
     else:
-        lat_min, lat_max = 18.0, 49.0
+        if st.button("Detect My Location"):
+            lat_min, lat_max, lon_min, lon_max = 25.0, 60.0, -130.0, -60.0
+            region_name = "Your Approximate Location"
+        else:
+            st.info("Click the button to center the map on your current region.")
 
-elif search_method == "Nearest City":
-    cities = {
-        "Toronto": (43.65, -79.38),
-        "Vancouver": (49.28, -123.12),
-        "Calgary": (51.05, -114.07),
-        "Montreal": (45.50, -73.57),
-        "New York": (40.71, -74.00),
-        "Los Angeles": (34.05, -118.24),
-        "Seattle": (47.60, -122.33),
-        "Miami": (25.76, -80.19),
-        "Chicago": (41.87, -87.62)
-    }
-    city_choice = st.sidebar.selectbox("Select a Major City", list(cities.keys()))
-    region_name = city_choice
-    city_lat, city_lon = cities[city_choice]
-    lat_min, lat_max = city_lat - 2.5, city_lat + 2.5
-    lon_min, lon_max = city_lon - 2.5, city_lon + 2.5
-    zoom_level = 7
+region_df = hotspots[(hotspots["grid_lat"] >= lat_min) & (hotspots["grid_lat"] <= lat_max) &
+                     (hotspots["grid_lon"] >= lon_min) & (hotspots["grid_lon"] <= lon_max)]
 
-elif search_method == "Coordinates (Lat/Lon)":
-    st.sidebar.markdown("**Enter Bounding Box**")
-    lat_min = st.sidebar.number_input("Min Latitude", value=18.0, step=1.0)
-    lat_max = st.sidebar.number_input("Max Latitude", value=84.0, step=1.0)
-    lon_min = st.sidebar.number_input("Min Longitude", value=-170.0, step=1.0)
-    lon_max = st.sidebar.number_input("Max Longitude", value=-50.0, step=1.0)
-    region_name = "Custom Area"
-    zoom_level = 4
+# ---------------- map (fixed, full canvas) ----------------
+map_df = region_df[region_df["year"] == selected_year]
+m = folium.Map(location=[(lat_min + lat_max) / 2, (lon_min + lon_max) / 2], zoom_start=3, min_zoom=3,
+               tiles="Esri World Imagery", control_scale=True,
+               min_lat=-85, max_lat=85, min_lon=-180, max_lon=180, max_bounds=True)
+m.fit_bounds([[lat_min, lon_min], [lat_max, lon_max]])
+if len(map_df):
+    for r in map_df.sample(n=min(5000, len(map_df)), random_state=42).itertuples():
+        folium.CircleMarker([r.grid_lat, r.grid_lon], radius=2.5, color="red", fill=True, fill_color="red",
+                            fill_opacity=0.85,
+                            tooltip=f"Lat: {r.grid_lat:.3f}<br>Lon: {r.grid_lon:.3f}<br>Year: {r.year}<br>Fires: {r.harmonized_count}").add_to(m)
+st_folium(m, height=10, use_container_width=True, returned_objects=[])
 
-else:
-    st.sidebar.markdown("**Live Location**")
-    if st.sidebar.button("Detect My Location"):
-        st.sidebar.success("Location detected! Centering map.")
-        lat_min, lat_max = 25.0, 60.0
-        lon_min, lon_max = -130.0, -60.0
-        region_name = "Your Approximate Location"
-        zoom_level = 4
-    else:
-        st.sidebar.info("Click the button to center the map on your current region.")
+# ---------------- glass chart panel (bottom) ----------------
+GLASS = dict(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", height=230,
+             font=dict(family="Times New Roman", color="#1E3B2F", size=11))
+CFG = {"displayModeBar": False}
 
-st.sidebar.markdown("---")
+monthly = region_df.groupby(["year", "month"])["harmonized_count"].sum().reset_index()
+years = list(range(2001, 2026))
+pivot = monthly.pivot(index="year", columns="month", values="harmonized_count").reindex(
+    index=years, columns=range(1, 13)).fillna(0).astype(int)
+totals = pivot.sum(axis=1)
 
-# Filter Data
-region_df = hotspots[
-    (hotspots["grid_lat"] >= lat_min) & (hotspots["grid_lat"] <= lat_max) &
-    (hotspots["grid_lon"] >= lon_min) & (hotspots["grid_lon"] <= lon_max)
-]
+fig_cal = go.Figure(go.Heatmap(
+    z=pivot.values, x=["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+    y=[str(y) for y in years], colorscale="YlOrRd", xgap=2, ygap=2, zmin=0,
+    hovertemplate="Year: %{y}<br>Fires: %{z}<extra></extra>", colorbar=dict(thickness=8, len=0.9, tickformat=",d")))
+yi = years.index(selected_year)
+fig_cal.add_shape(type="rect", x0=-.5, x1=11.5, y0=yi - .5, y1=yi + .5, line=dict(color="#1E3B2F", width=3))
+fig_cal.update_layout(**GLASS, margin=dict(l=40, r=5, t=5, b=25),
+                      xaxis=dict(showgrid=False, tickfont=dict(size=9)),
+                      yaxis=dict(autorange="reversed", type="category", showgrid=False, tickfont=dict(size=8)))
 
-# ====================== DASHBOARD LAYOUT ======================
-if "show_charts" not in st.session_state:
-    st.session_state.show_charts = True
+fig_trend = go.Figure(go.Scatter(x=years, y=totals.values, mode="lines+markers", fill="tozeroy",
+                                 fillcolor="rgba(30,59,47,.18)", line=dict(width=3, color="#1E3B2F"),
+                                 marker=dict(size=5, color="#1E3B2F"),
+                                 hovertemplate="Year: %{x}<br>Fires: %{y:,d}<extra></extra>"))
+fig_trend.add_annotation(x=selected_year, y=int(totals[selected_year]), text="▼", showarrow=False,
+                         font=dict(color="red", size=18), yshift=12)
+fig_trend.update_layout(**GLASS, margin=dict(l=55, r=15, t=5, b=30), dragmode="pan",
+                        xaxis=dict(title="Year", gridcolor="rgba(200,180,138,.6)", linecolor="#1E3B2F", showline=True),
+                        yaxis=dict(title="Harmonized Count", gridcolor="rgba(200,180,138,.6)", linecolor="#1E3B2F",
+                                   showline=True, tickformat=",d"))
 
-
-def toggle_charts():
-    st.session_state.show_charts = not st.session_state.show_charts
-
-
-# Right-aligned hamburger toggle above the dashboard
-_, toggle_col = st.columns([8, 1.2])
-with toggle_col:
-    st.button(
-        "☰ Charts",
-        key="toggle_charts",
-        on_click=toggle_charts,
-        help="Show / hide Burning Calendar and Analytics Graph",
-        use_container_width=True,
-    )
-
-
-def render_map():
-    map_data = region_df[region_df["year"] == selected_year]
-
-    if len(map_data) > 0:
-        map_df = map_data.sample(n=min(5000, len(map_data)), random_state=42)
-
-        center_lat = (lat_min + lat_max) / 2
-        center_lon = (lon_min + lon_max) / 2
-
-        m = folium.Map(
-            location=[center_lat, center_lon],
-            zoom_start=zoom_level,
-            tiles="Esri World Imagery",
-            control_scale=True,
-        )
-
-        for _, row in map_df.iterrows():
-            folium.CircleMarker(
-                location=[row.grid_lat, row.grid_lon],
-                radius=2.5,
-                color="red",
-                fill=True,
-                fill_color="red",
-                fill_opacity=0.85,
-                tooltip=(
-                    f"Lat: {row.grid_lat:.3f}<br>"
-                    f"Lon: {row.grid_lon:.3f}<br>"
-                    f"Year: {int(row.year)}<br>"
-                    f"Fires: {int(row.harmonized_count)}"
-                ),
-            ).add_to(m)
-
-        st_folium(m, height=800, use_container_width=True, returned_objects=[])
-    else:
-        st.warning(f"No data available for {region_name} in {selected_year}.")
-
-
-def render_charts():
-    # 1. Burning Calendar
-    st.markdown("<h4 style='text-align: center; margin-top: 0;'>Burning Calendar</h4>", unsafe_allow_html=True)
-
-    monthly = region_df.groupby(["year", "month"])["harmonized_count"].sum().reset_index()
-    all_years = list(range(2001, 2026))
-    all_months = list(range(1, 13))
-
-    pivot = monthly.pivot(index="year", columns="month", values="harmonized_count")
-    pivot = pivot.reindex(index=all_years, columns=all_months).fillna(0).astype(int)
-
-    fig_calendar = go.Figure(data=go.Heatmap(
-        z=pivot.values,
-        x=["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
-        y=[str(y) for y in pivot.index],
-        colorscale="YlOrRd",
-        xgap=3,
-        ygap=3,
-        zmin=0,
-        zmax=int(pivot.values.max()) if pivot.values.max() > 0 else 1,
-        hovertemplate="Year: %{y}<br>Fires: %{z}<extra></extra>",
-        colorbar=dict(title="Intensity", thickness=10, len=0.8, tickformat=",d"),
-    ))
-
-    year_index = list(pivot.index).index(selected_year)
-    fig_calendar.add_shape(
-        type="rect",
-        x0=-0.5, x1=11.5,
-        y0=year_index - 0.5, y1=year_index + 0.5,
-        line=dict(color="#1E3B2F", width=3),
-    )
-
-    fig_calendar.update_layout(
-        height=380,
-        paper_bgcolor="#F5F0E6",
-        plot_bgcolor="#F5F0E6",
-        font=dict(family="Times New Roman", color="#1E3B2F"),
-        xaxis=dict(side="top", showgrid=False, zeroline=False,
-                   tickfont=dict(size=10, color="#1E3B2F"), title="<b>Month</b>"),
-        yaxis=dict(autorange="reversed", showgrid=False, zeroline=False,
-                   tickfont=dict(size=11, color="#1E3B2F"), type="category", title="<b>Year</b>"),
-        margin=dict(l=50, r=10, t=40, b=15),
-        dragmode="zoom",
-    )
-    st.plotly_chart(fig_calendar, use_container_width=True, config={"displayModeBar": False})
-
-    # 2. Analytics Graph
-    st.markdown("<h4 style='text-align: center; margin-top: 10px;'>Analytics Graph</h4>", unsafe_allow_html=True)
-
-    yearly_totals = region_df.groupby("year")["harmonized_count"].sum().reset_index()
-    yearly_totals["year"] = yearly_totals["year"].astype(int)
-    yearly_totals["harmonized_count"] = yearly_totals["harmonized_count"].astype(int)
-
-    fig_trend = px.line(
-        yearly_totals, x="year", y="harmonized_count",
-        markers=True, color_discrete_sequence=["#1E3B2F"],
-    )
-    fig_trend.update_traces(
-        fill="tozeroy", fillcolor="rgba(30, 59, 47, 0.15)",
-        line=dict(width=3), marker=dict(size=6, color="#1E3B2F"),
-    )
-
-    selected_count = 0
-    if selected_year in yearly_totals["year"].values:
-        selected_count = int(yearly_totals[yearly_totals["year"] == selected_year]["harmonized_count"].values[0])
-
-    fig_trend.add_annotation(
-        x=selected_year, y=selected_count, text="▼",
-        showarrow=False, font=dict(color="red", size=20), yshift=12,
-    )
-
-    fig_trend.update_layout(
-        xaxis_title="<b>Year</b>",
-        yaxis_title="<b>Harmonized Count</b>",
-        paper_bgcolor="#F5F0E6",
-        plot_bgcolor="#F5F0E6",
-        font=dict(family="Times New Roman", color="#1E3B2F", size=12),
-        margin=dict(l=55, r=20, t=30, b=30),
-        height=380,
-        xaxis=dict(showgrid=True, gridcolor="#C8B48A", showline=True, linewidth=2,
-                   linecolor="#1E3B2F", mirror=True, type="linear"),
-        yaxis=dict(showgrid=True, gridcolor="#C8B48A", showline=True, linewidth=2,
-                   linecolor="#1E3B2F", mirror=True, tickformat=",d"),
-        dragmode="pan",
-    )
-    st.plotly_chart(fig_trend, use_container_width=True, config={"displayModeBar": False})
-
-
-if st.session_state.show_charts:
-    col_map, col_charts = st.columns([1.8, 1])
-    with col_map:
-        render_map()
-    with col_charts:
-        render_charts()
-else:
-    render_map()   # map takes the full width when the panel is hidden
+with st.container(key="charts_panel"):
+    st.button("▼ Hide charts" if st.session_state.show_charts else "▲ Show charts",
+              key="charts_btn", on_click=flip, args=("show_charts",))
+    with st.container(key="charts_row"):
+        c1, c2 = st.columns(2)
+        with c1:
+            st.markdown("<h5>Burning Calendar</h5>", unsafe_allow_html=True)
+            st.plotly_chart(fig_cal, use_container_width=True, config=CFG)
+        with c2:
+            st.markdown("<h5>Analytics Graph</h5>", unsafe_allow_html=True)
+            st.plotly_chart(fig_trend, use_container_width=True, config=CFG)

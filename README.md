@@ -61,7 +61,7 @@ To compare the two sensors, the data must be mapped to a common spatial grid.
 ## Third-Party Libraries & Tools Used
 
 The application is built entirely in Python and utilizes the following open-source libraries:
-- Streamlit: The core framework for building the interactive web application.
+- [Streamlit](https://streamlit.io/): The core framework for building the interactive web application.
 - Pandas: Data manipulation, filtering, and aggregation.
 - PyArrow: Efficient reading of the compressed Parquet dataset.
 - Plotly: Interactive graphs, including the heatmap calendar and anomaly bar charts.

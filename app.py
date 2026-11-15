@@ -47,13 +47,14 @@ p, label, h5 {color:#fff !important;}
 .st-key-filters_panel label p {font-size:1.05rem !important; font-weight:700 !important;}
 .st-key-filters_panel [data-baseweb="select"] > div, .st-key-filters_panel input {background:#1a0000 !important; color:#fff !important;}
 
-/* chart switcher: ONLY these two buttons are glass */
-.st-key-chart_pick {position:fixed; bottom:18px; left:50%; transform:translateX(-50%); width:440px; z-index:1002; padding:6px 8px;
+/* chart switcher: ONLY these buttons are glass */
+.st-key-chart_pick {position:fixed; bottom:18px; left:50%; transform:translateX(-50%); width:600px; z-index:1002; padding:6px 8px;
   background:rgba(0,0,0,.45); backdrop-filter:blur(14px) saturate(150%); -webkit-backdrop-filter:blur(14px) saturate(150%);
   border:1px solid rgba(255,0,0,.5); border-radius:999px; box-shadow:0 8px 32px rgba(0,0,0,.6);}
 .st-key-chart_pick button {background:transparent !important; border:0 !important; border-radius:999px !important; padding:6px 10px !important;}
 .st-key-chart_pick button:hover {background:rgba(188,2,2,.4) !important;}
 .st-key-chart_pick button p {font-size:1.05rem !important; font-weight:700 !important; color:#fff !important;}
+
 /* chart view: solid panel that opens above the switcher */
 .st-key-charts_panel {position:fixed; bottom:78px; z-index:1001; padding:10px 14px; background:#0b0000;
   border:1px solid var(--c2); border-radius:14px; box-shadow:0 8px 32px rgba(0,0,0,.7);}
@@ -101,7 +102,6 @@ def map_html(year, b):
     d = hotspots[(hotspots.year == year) & (hotspots.grid_lat >= b[0]) & (hotspots.grid_lat <= b[1]) &
                  (hotspots.grid_lon >= b[2]) & (hotspots.grid_lon <= b[3])]
     
-    # scrollWheelZoom=True enables the mouse wheel zoom "motion sensor"
     m = folium.Map(location=[(b[0] + b[1]) / 2, (b[2] + b[3]) / 2], zoom_start=3, min_zoom=2, tiles="Esri World Imagery",
                    prefer_canvas=True, min_lat=-85, max_lat=85, min_lon=-180, max_lon=180, max_bounds=True,
                    scrollWheelZoom=True)
@@ -114,15 +114,11 @@ def map_html(year, b):
                                 fill_opacity=0.85, weight=1,
                                 tooltip=f"<b>Lat:</b> {r.grid_lat:.3f}<br><b>Lon:</b> {r.grid_lon:.3f}<br><b>Year:</b> {r.year}<br><b>Fires:</b> {r.harmonized_count}").add_to(m)
     
-    # Inject custom CSS and JS for Glassmorphism Tooltip & Reset Button
     custom_html = f"""
     <style>
     html,body {{height:100%;margin:0}}
-    
-    /* Move default zoom controls */
     .leaflet-top.leaflet-left {{top:auto;bottom:150px;left:auto;right:10px;}}
     
-    /* Glassmorphism Tooltip */
     .leaflet-tooltip {{
         background: rgba(0, 0, 0, 0.4) !important;
         backdrop-filter: blur(12px) saturate(150%) !important;
@@ -141,13 +137,7 @@ def map_html(year, b):
     .leaflet-tooltip-left:before {{ border-left-color: rgba(255, 255, 255, 0.3) !important; }}
     .leaflet-tooltip-right:before {{ border-right-color: rgba(255, 255, 255, 0.3) !important; }}
     
-    /* Reset Button */
-    .reset-btn-container {{
-        position: absolute;
-        bottom: 90px;
-        right: 10px;
-        z-index: 1000;
-    }}
+    .reset-btn-container {{ position: absolute; bottom: 90px; right: 10px; z-index: 1000; }}
     .reset-btn {{
         background: rgba(0, 0, 0, 0.4);
         backdrop-filter: blur(12px) saturate(150%);
@@ -166,10 +156,7 @@ def map_html(year, b):
         font-family: 'Google Sans', Arial, sans-serif;
         font-size: 13px;
     }}
-    .reset-btn:hover {{
-        background: rgba(188, 2, 2, 0.7);
-        border-color: #ff0000;
-    }}
+    .reset-btn:hover {{ background: rgba(188, 2, 2, 0.7); border-color: #ff0000; }}
     </style>
     
     <script>
@@ -177,14 +164,12 @@ def map_html(year, b):
         var mapElement = document.querySelector('.folium-map');
         var mapId = mapElement.id;
         var map = window[mapId];
-        
         var btn = document.createElement('button');
         btn.innerHTML = 'Reset View';
         btn.className = 'reset-btn';
         btn.onclick = function() {{
             map.flyToBounds([[{b[0]}, {b[2]}], [{b[1]}, {b[3]}]], {{duration: 1.5}});
         }};
-        
         var container = document.createElement('div');
         container.className = 'reset-btn-container';
         container.appendChild(btn);
@@ -193,7 +178,6 @@ def map_html(year, b):
     </script>
     """
     m.get_root().header.add_child(folium.Element(custom_html))
-    
     return m.get_root().render()
 
 
@@ -249,13 +233,29 @@ with st.container(key="filters_panel"):
     else:
         st.info("Click the button to center the map on your current region.")
 
+    # --- NEW: Download Filtered Data Option ---
+    st.markdown("---")
+    download_df = hotspots[
+        (hotspots["year"] == year) & 
+        (hotspots["grid_lat"] >= lat_min) & (hotspots["grid_lat"] <= lat_max) &
+        (hotspots["grid_lon"] >= lon_min) & (hotspots["grid_lon"] <= lon_max)
+    ]
+    csv = download_df.to_csv(index=False).encode('utf-8')
+    st.download_button(
+        label="📥 Download Filtered CSV",
+        data=csv,
+        file_name=f"firewatch_hotspots_{year}.csv",
+        mime="text/csv",
+        use_container_width=True
+    )
+
 bounds = (float(lat_min), float(lat_max), float(lon_min), float(lon_max))
 
 # ---------------- map ----------------
 with st.container(key="map_box"):
     components.html(map_html(year, bounds), height=700)
 
-# ---------------- glass chart panel (tabs: pick one) ----------------
+# ---------------- glass chart panel ----------------
 MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 LAYOUT = dict(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", height=240,
               font=dict(family="Google Sans Flex, Arial, sans-serif", color="#fff", size=11))
@@ -267,14 +267,26 @@ def chart_panel(pv, yr):
         st.session_state.open_chart = None if st.session_state.get("open_chart") == name else name
 
     with st.container(key="chart_pick"):
-        a, b = st.columns(2)
-        a.button("Burning Calendar", key="pill_cal", on_click=toggle, args=("cal",), use_container_width=True)
-        b.button("Analytics Graph", key="pill_trend", on_click=toggle, args=("trend",), use_container_width=True)
+        a, b, c = st.columns(3)
+        a.button("Calendar", key="pill_cal", on_click=toggle, args=("cal",), use_container_width=True)
+        b.button("Trend", key="pill_trend", on_click=toggle, args=("trend",), use_container_width=True)
+        c.button("Anomalies", key="pill_anomaly", on_click=toggle, args=("anomaly",), use_container_width=True)
+        
     cur = st.session_state.get("open_chart")
     if not cur:
         return
+    
     st.markdown(f"<style>.st-key-pill_{cur} button{{background:#BC0202 !important;}}</style>", unsafe_allow_html=True)
     years = list(pv.index)
+    
+    # Calculate stats for anomalies and comparisons
+    tot = pv.sum(axis=1)
+    avg = tot.mean()
+    anomaly = tot - avg
+    yr_val = tot[yr]
+    pct_diff = ((yr_val - avg) / avg) * 100
+    rank = int(tot.rank(ascending=False).loc[yr])
+    
     with st.container(key="charts_panel"):
         if cur == "cal":
             cal_colorscale = [[0, "#FFFFFF"], [0.35, "#FFCDCD"], [0.7, "#FF0000"], [1, "#8B0000"]]
@@ -297,15 +309,37 @@ def chart_panel(pv, yr):
                               xaxis=dict(showgrid=False, tickfont=dict(color="#000000")), 
                               yaxis=dict(autorange="reversed", type="category", showgrid=False, tickfont=dict(color="#000000", size=8)))
             st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
-        else:
-            tot = pv.sum(axis=1)
+            
+        elif cur == "trend":
             fig = go.Figure(go.Scatter(x=years, y=tot.values, mode="lines+markers", fill="tozeroy", fillcolor="rgba(255,0,0,.18)",
                                        line=dict(width=3, color="#FF0000"), marker=dict(size=5, color="#FF0000"),
                                        hovertemplate="Year: %{x}<br>Fires: %{y:,d}<extra></extra>"))
+            
+            # Add horizontal dashed line for multi-year average
+            fig.add_hline(y=avg, line_dash="dot", line_color="gray", line_width=2)
+            
             fig.add_annotation(x=yr, y=int(tot[yr]), text="▼", showarrow=False, font=dict(color="#fff", size=18), yshift=12)
             grid = "rgba(255,255,255,.15)"
             fig.update_layout(**LAYOUT, margin=dict(l=60, r=15, t=5, b=35), dragmode="pan",
                               xaxis=dict(title="Year", gridcolor=grid), yaxis=dict(title="Harmonized Count", gridcolor=grid, tickformat=",d"))
+            
+            # Add comparison text badge
+            st.markdown(f"<div style='position:absolute; top:15px; right:20px; background:rgba(0,0,0,0.6); padding:4px 10px; border-radius:8px; font-size:12px; color:#fff;'><b>{yr} Trend:</b> {pct_diff:+.1f}% vs Avg</div>", unsafe_allow_html=True)
+            st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+            
+        else: # Anomaly
+            colors = ['#FF0000' if x > 0 else '#3B82F6' for x in anomaly]
+            fig = go.Figure(go.Bar(x=years, y=anomaly.values, marker_color=colors, 
+                                   hovertemplate="Year: %{x}<br>Anomaly: %{y:,d}<extra></extra>"))
+            
+            fig.add_hline(y=0, line_color="white", line_width=1)
+            fig.add_annotation(x=yr, y=anomaly[yr], text="▼", showarrow=False, font=dict(color="#fff", size=18), yshift=12)
+            grid = "rgba(255,255,255,.15)"
+            fig.update_layout(**LAYOUT, margin=dict(l=60, r=15, t=5, b=35), dragmode="pan",
+                              xaxis=dict(title="Year", gridcolor=grid), yaxis=dict(title="Anomaly (vs Avg)", gridcolor=grid, tickformat=",d"))
+            
+            # Add rank text badge
+            st.markdown(f"<div style='position:absolute; top:15px; right:20px; background:rgba(0,0,0,0.6); padding:4px 10px; border-radius:8px; font-size:12px; color:#fff;'><b>{yr} Rank:</b> #{rank} of {len(years)} years</div>", unsafe_allow_html=True)
             st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
 
 

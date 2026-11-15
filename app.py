@@ -193,14 +193,28 @@ def chart_panel(pv, yr):
     years = list(pv.index)
     with st.container(key="charts_panel"):
         if cur == "cal":
+            # Changed colorscale to start with light gray/white instead of black
+            cal_colorscale = [[0, "#FFFFFF"], [0.35, "#FFCDCD"], [0.7, "#FF0000"], [1, "#8B0000"]]
+            
             fig = go.Figure(go.Heatmap(z=pv.values, x=MONTHS, y=[str(y) for y in years], xgap=2, ygap=2, zmin=0,
-                                       colorscale=[[0, "#000000"], [.35, "#830000"], [.7, "#BC0202"], [1, "#FF0000"]],
+                                       colorscale=cal_colorscale,
                                        hovertemplate="Year: %{y}<br>Fires: %{z}<extra></extra>",
-                                       colorbar=dict(thickness=8, len=.9, tickformat=",d")))
+                                       colorbar=dict(thickness=8, len=.9, tickformat=",d", tickfont=dict(color="black"))))
             i = years.index(yr)
-            fig.add_shape(type="rect", x0=-.5, x1=11.5, y0=i - .5, y1=i + .5, line=dict(color="#fff", width=2))
-            fig.update_layout(**LAYOUT, margin=dict(l=40, r=5, t=5, b=25),
-                              xaxis=dict(showgrid=False), yaxis=dict(autorange="reversed", type="category", showgrid=False, tickfont=dict(size=8)))
+            # Changed highlight box to black so it shows on light background
+            fig.add_shape(type="rect", x0=-.5, x1=11.5, y0=i - .5, y1=i + .5, line=dict(color="#000000", width=2))
+            
+            # Create a light layout just for the calendar
+            cal_layout = LAYOUT.copy()
+            cal_layout.update(
+                paper_bgcolor="#FFFFFF", 
+                plot_bgcolor="#FFFFFF",
+                font=dict(family="Google Sans Flex, Arial, sans-serif", color="#000000", size=11)
+            )
+            
+            fig.update_layout(**cal_layout, margin=dict(l=40, r=5, t=5, b=25),
+                              xaxis=dict(showgrid=False, tickfont=dict(color="#000000")), 
+                              yaxis=dict(autorange="reversed", type="category", showgrid=False, tickfont=dict(color="#000000", size=8)))
             st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
         else:
             tot = pv.sum(axis=1)

@@ -242,7 +242,7 @@ with st.container(key="filters_panel"):
     ]
     csv = download_df.to_csv(index=False).encode('utf-8')
     st.download_button(
-        label="📥 Download Filtered CSV",
+        label="Download Filtered CSV",
         data=csv,
         file_name=f"firewatch_hotspots_{year}.csv",
         mime="text/csv",

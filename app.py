@@ -8,7 +8,7 @@ import streamlit.components.v1 as components
 
 APP_URL = "https://your-app-name.streamlit.app"   # <<< your deployed link (used by Share)
 PARQUET = "Processed Data/harmonized_hotspots_canada_us.parquet"
-RAW_URL = "https://github.com/yashaswinik-1610/Nasa-Hackathon-2026-/raw/main/Processed%20Data/harmonized_hotspots_canada_us.parquet"
+RAW_URL = "RAW_URL = "https://github.com/yashaswinik-1610/Nasa-Hackathon-2026-MV-Sat/raw/main/Processed%20Data/harmonized_hotspots_canada_us.parquet"
 FONT = "'Google Sans Flex','Google Sans','Product Sans',Arial,sans-serif"
 
 st.set_page_config(page_title="MV-Sat", layout="wide", initial_sidebar_state="collapsed")

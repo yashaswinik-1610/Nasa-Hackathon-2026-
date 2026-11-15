@@ -11,7 +11,7 @@ PARQUET = "Processed Data/harmonized_hotspots_canada_us.parquet"
 RAW_URL = "https://github.com/yashaswinik-1610/Nasa-Hackathon-2026-/raw/main/Processed%20Data/harmonized_hotspots_canada_us.parquet"
 FONT = "'Google Sans Flex','Google Sans','Product Sans',Arial,sans-serif"
 
-st.set_page_config(page_title="FIREWATCH", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="MV-Sat", layout="wide", initial_sidebar_state="collapsed")
 
 BASE_CSS = """
 <style>
@@ -28,8 +28,8 @@ p, label, h5 {color:#fff !important;}
 
 .firms-header {position:fixed; top:0; left:0; width:100%; height:85px; background:var(--c1); display:flex; align-items:center;
   padding:0 25px 0 80px; box-shadow:0 2px 10px rgba(0,0,0,.6); z-index:999999;}
-.logo-text {font-size:28px; font-weight:700; letter-spacing:1px; color:#fff; line-height:1;}
-.logo-subtext {font-size:14px; margin-top:2px; color:#fff; opacity:.9;}
+.logo-text {font-size:26px; font-weight:700; letter-spacing:1px; color:#fff; line-height:1;}
+.logo-subtext {font-size:13px; margin-top:2px; color:#fff; opacity:.9;}
 
 .st-key-menu_btn, .st-key-dl_btn, .st-key-share_btn, .st-key-about_btn {position:fixed; top:20px; z-index:1000001;}
 .st-key-menu_btn {left:18px;} .st-key-about_btn {right:25px;} .st-key-share_btn {right:150px;} .st-key-dl_btn {right:265px;}
@@ -182,24 +182,24 @@ def map_html(year, b):
 
 
 # ---------------- header ----------------
-st.markdown('<div class="firms-header"><div><div class="logo-text">FIREWATCH</div>'
-            '<div class="logo-subtext">Satellite Fire Detection System</div></div>'
+st.markdown('<div class="firms-header"><div><div class="logo-text">MV-Sat</div>'
+            '<div class="logo-subtext">Harmonized MODIS-VIIRS Satellite Fire Detection System</div></div>'
             f'<a class="hdl" href="{RAW_URL}" target="_blank">&#11015; Download</a></div>', unsafe_allow_html=True)
 st.button("☰", key="menu_btn", on_click=flip, args=("show_filters",), help="Show / hide filters")
 
 
-@st.dialog("Share FIREWATCH")
+@st.dialog("Share MV-Sat")
 def share_dialog():
     st.write("Copy the link:")
     st.code(APP_URL, language=None)
-    msg, u = quote("Explore wildfire activity across Canada and the US on FIREWATCH"), quote(APP_URL)
+    msg, u = quote("Explore harmonized wildfire activity across Canada and the US on MV-Sat"), quote(APP_URL)
     st.markdown(f"[WhatsApp](https://wa.me/?text={msg}%20{u}) · [X](https://twitter.com/intent/tweet?text={msg}&url={u}) · "
-                f"[LinkedIn](https://www.linkedin.com/sharing/share-offsite/?url={u}) · [Email](mailto:?subject=FIREWATCH&body={msg}%20{u})")
+                f"[LinkedIn](https://www.linkedin.com/sharing/share-offsite/?url={u}) · [Email](mailto:?subject=MV-Sat&body={msg}%20{u})")
 
 
-@st.dialog("About FIREWATCH")
+@st.dialog("About MV-Sat")
 def about_dialog():
-    st.write("FIREWATCH harmonizes MODIS and VIIRS satellite data to give a continuous, sensor-agnostic view "
+    st.write("MV-Sat harmonizes MODIS and VIIRS satellite data to give a continuous, sensor-agnostic view "
              "of fire activity across Canada and the US from 2001 to 2025.")
 
 
@@ -233,7 +233,7 @@ with st.container(key="filters_panel"):
     else:
         st.info("Click the button to center the map on your current region.")
 
-    # --- NEW: Download Filtered Data Option ---
+    # --- Download Filtered Data Option ---
     st.markdown("---")
     download_df = hotspots[
         (hotspots["year"] == year) & 
@@ -244,7 +244,7 @@ with st.container(key="filters_panel"):
     st.download_button(
         label="Download Filtered CSV",
         data=csv,
-        file_name=f"firewatch_hotspots_{year}.csv",
+        file_name=f"mvsat_hotspots_{year}.csv",
         mime="text/csv",
         use_container_width=True
     )
@@ -315,7 +315,6 @@ def chart_panel(pv, yr):
                                        line=dict(width=3, color="#FF0000"), marker=dict(size=5, color="#FF0000"),
                                        hovertemplate="Year: %{x}<br>Fires: %{y:,d}<extra></extra>"))
             
-            # Add horizontal dashed line for multi-year average
             fig.add_hline(y=avg, line_dash="dot", line_color="gray", line_width=2)
             
             fig.add_annotation(x=yr, y=int(tot[yr]), text="▼", showarrow=False, font=dict(color="#fff", size=18), yshift=12)
@@ -323,7 +322,6 @@ def chart_panel(pv, yr):
             fig.update_layout(**LAYOUT, margin=dict(l=60, r=15, t=5, b=35), dragmode="pan",
                               xaxis=dict(title="Year", gridcolor=grid), yaxis=dict(title="Harmonized Count", gridcolor=grid, tickformat=",d"))
             
-            # Add comparison text badge
             st.markdown(f"<div style='position:absolute; top:15px; right:20px; background:rgba(0,0,0,0.6); padding:4px 10px; border-radius:8px; font-size:12px; color:#fff;'><b>{yr} Trend:</b> {pct_diff:+.1f}% vs Avg</div>", unsafe_allow_html=True)
             st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
             
@@ -338,7 +336,6 @@ def chart_panel(pv, yr):
             fig.update_layout(**LAYOUT, margin=dict(l=60, r=15, t=5, b=35), dragmode="pan",
                               xaxis=dict(title="Year", gridcolor=grid), yaxis=dict(title="Anomaly (vs Avg)", gridcolor=grid, tickformat=",d"))
             
-            # Add rank text badge
             st.markdown(f"<div style='position:absolute; top:15px; right:20px; background:rgba(0,0,0,0.6); padding:4px 10px; border-radius:8px; font-size:12px; color:#fff;'><b>{yr} Rank:</b> #{rank} of {len(years)} years</div>", unsafe_allow_html=True)
             st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
 

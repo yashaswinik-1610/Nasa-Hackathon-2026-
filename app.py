@@ -47,21 +47,16 @@ p, label, h5 {color:#fff !important;}
 .st-key-filters_panel label p {font-size:1.05rem !important; font-weight:700 !important;}
 .st-key-filters_panel [data-baseweb="select"] > div, .st-key-filters_panel input {background:#1a0000 !important; color:#fff !important;}
 
-/* glass chart panel */
-.st-key-charts_panel {position:fixed; bottom:16px; z-index:1000; padding:6px 16px 10px; background:rgba(0,0,0,.55);
-  backdrop-filter:blur(14px) saturate(150%); -webkit-backdrop-filter:blur(14px) saturate(150%);
-  border:1px solid rgba(255,0,0,.45); border-radius:18px; box-shadow:0 8px 32px rgba(0,0,0,.6);}
-.st-key-charts_btn {display:flex; justify-content:flex-end;}
-.st-key-charts_btn button {background:var(--c2) !important; border:0 !important; border-radius:8px !important; padding:2px 12px !important;}
-.st-key-charts_btn button:hover {background:var(--c3) !important;}
-.st-key-charts_panel button[role="tab"] p {font-size:1.05rem !important; font-weight:700 !important; color:#fff !important;}
-.st-key-chart_pick {display:flex; justify-content:center; margin-bottom:4px;}
-.st-key-chart_pick [role="radiogroup"] {background:rgba(0,0,0,.45); border:1px solid rgba(255,0,0,.5); border-radius:999px; padding:5px; gap:4px;}
-.st-key-chart_pick label {border-radius:999px; padding:6px 26px !important; margin:0 !important; cursor:pointer;}
-.st-key-chart_pick label > div:first-child {display:none;}
-.st-key-chart_pick label:hover {background:rgba(188,2,2,.35);}
-.st-key-chart_pick label:has(input:checked) {background:var(--c2);}
-.st-key-chart_pick label p {font-size:1.1rem !important; font-weight:700 !important; margin:0;}
+/* chart switcher: ONLY these two buttons are glass */
+.st-key-chart_pick {position:fixed; bottom:18px; left:50%; transform:translateX(-50%); width:440px; z-index:1002; padding:6px 8px;
+  background:rgba(0,0,0,.45); backdrop-filter:blur(14px) saturate(150%); -webkit-backdrop-filter:blur(14px) saturate(150%);
+  border:1px solid rgba(255,0,0,.5); border-radius:999px; box-shadow:0 8px 32px rgba(0,0,0,.6);}
+.st-key-chart_pick button {background:transparent !important; border:0 !important; border-radius:999px !important; padding:6px 10px !important;}
+.st-key-chart_pick button:hover {background:rgba(188,2,2,.4) !important;}
+.st-key-chart_pick button p {font-size:1.05rem !important; font-weight:700 !important; color:#fff !important;}
+/* chart view: solid panel that opens above the switcher */
+.st-key-charts_panel {position:fixed; bottom:78px; z-index:1001; padding:10px 14px; background:#0b0000;
+  border:1px solid var(--c2); border-radius:14px; box-shadow:0 8px 32px rgba(0,0,0,.7);}
 .hdl {position:fixed; top:20px; right:265px; z-index:1000001; color:#fff !important; font-size:17px; font-weight:600;
   padding:8px 12px; border-radius:6px; text-decoration:none !important;}
 .hdl:hover {background:var(--c2);}
@@ -184,11 +179,20 @@ LAYOUT = dict(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", heigh
 
 @st.fragment
 def chart_panel(pv, yr):
+    def toggle(name):
+        st.session_state.open_chart = None if st.session_state.get("open_chart") == name else name
+
+    with st.container(key="chart_pick"):
+        a, b = st.columns(2)
+        a.button("Burning Calendar", key="pill_cal", on_click=toggle, args=("cal",), use_container_width=True)
+        b.button("Analytics Graph", key="pill_trend", on_click=toggle, args=("trend",), use_container_width=True)
+    cur = st.session_state.get("open_chart")
+    if not cur:
+        return
+    st.markdown(f"<style>.st-key-pill_{cur} button{{background:#BC0202 !important;}}</style>", unsafe_allow_html=True)
+    years = list(pv.index)
     with st.container(key="charts_panel"):
-        with st.container(key="chart_pick"):
-            pick = st.radio("Chart", ["Burning Calendar", "Analytics Graph"], horizontal=True, label_visibility="collapsed")
-        years = list(pv.index)
-        if pick == "Burning Calendar":
+        if cur == "cal":
             fig = go.Figure(go.Heatmap(z=pv.values, x=MONTHS, y=[str(y) for y in years], xgap=2, ygap=2, zmin=0,
                                        colorscale=[[0, "#000000"], [.35, "#830000"], [.7, "#BC0202"], [1, "#FF0000"]],
                                        hovertemplate="Year: %{y}<br>Fires: %{z}<extra></extra>",

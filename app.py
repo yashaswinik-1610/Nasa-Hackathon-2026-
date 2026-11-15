@@ -179,7 +179,7 @@ def map_html(year, b):
         var map = window[mapId];
         
         var btn = document.createElement('button');
-        btn.innerHTML = '🎯 Reset View';
+        btn.innerHTML = 'Reset View';
         btn.className = 'reset-btn';
         btn.onclick = function() {{
             map.flyToBounds([[{b[0]}, {b[2]}], [{b[1]}, {b[3]}]], {{duration: 1.5}});

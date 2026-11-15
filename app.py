@@ -100,16 +100,100 @@ def chart_data(b):
 def map_html(year, b):
     d = hotspots[(hotspots.year == year) & (hotspots.grid_lat >= b[0]) & (hotspots.grid_lat <= b[1]) &
                  (hotspots.grid_lon >= b[2]) & (hotspots.grid_lon <= b[3])]
-    m = folium.Map(location=[(b[0] + b[1]) / 2, (b[2] + b[3]) / 2], zoom_start=3, min_zoom=3, tiles="Esri World Imagery",
-                   prefer_canvas=True, min_lat=-85, max_lat=85, min_lon=-180, max_lon=180, max_bounds=True)
+    
+    # scrollWheelZoom=True enables the mouse wheel zoom "motion sensor"
+    m = folium.Map(location=[(b[0] + b[1]) / 2, (b[2] + b[3]) / 2], zoom_start=3, min_zoom=2, tiles="Esri World Imagery",
+                   prefer_canvas=True, min_lat=-85, max_lat=85, min_lon=-180, max_lon=180, max_bounds=True,
+                   scrollWheelZoom=True)
+    
     m.fit_bounds([[b[0], b[2]], [b[1], b[3]]])
+    
     if len(d):
         for r in d.sample(n=min(3000, len(d)), random_state=42).itertuples():
             folium.CircleMarker([r.grid_lat, r.grid_lon], radius=2.5, color="#FF0000", fill=True, fill_color="#FF0000",
                                 fill_opacity=0.85, weight=1,
-                                tooltip=f"Lat: {r.grid_lat:.3f}<br>Lon: {r.grid_lon:.3f}<br>Year: {r.year}<br>Fires: {r.harmonized_count}").add_to(m)
-    m.get_root().header.add_child(folium.Element(
-        "<style>html,body{height:100%;margin:0}.leaflet-top.leaflet-left{top:auto;bottom:90px;left:auto;right:10px}</style>"))
+                                tooltip=f"<b>Lat:</b> {r.grid_lat:.3f}<br><b>Lon:</b> {r.grid_lon:.3f}<br><b>Year:</b> {r.year}<br><b>Fires:</b> {r.harmonized_count}").add_to(m)
+    
+    # Inject custom CSS and JS for Glassmorphism Tooltip & Reset Button
+    custom_html = f"""
+    <style>
+    html,body {{height:100%;margin:0}}
+    
+    /* Move default zoom controls */
+    .leaflet-top.leaflet-left {{top:auto;bottom:150px;left:auto;right:10px;}}
+    
+    /* Glassmorphism Tooltip */
+    .leaflet-tooltip {{
+        background: rgba(0, 0, 0, 0.4) !important;
+        backdrop-filter: blur(12px) saturate(150%) !important;
+        -webkit-backdrop-filter: blur(12px) saturate(150%) !important;
+        border: 1px solid rgba(255, 255, 255, 0.3) !important;
+        border-radius: 8px !important;
+        color: #fff !important;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.5) !important;
+        font-family: 'Google Sans', Arial, sans-serif !important;
+        font-size: 13px !important;
+        padding: 8px 12px !important;
+        text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+    }}
+    .leaflet-tooltip-top:before {{ border-top-color: rgba(255, 255, 255, 0.3) !important; }}
+    .leaflet-tooltip-bottom:before {{ border-bottom-color: rgba(255, 255, 255, 0.3) !important; }}
+    .leaflet-tooltip-left:before {{ border-left-color: rgba(255, 255, 255, 0.3) !important; }}
+    .leaflet-tooltip-right:before {{ border-right-color: rgba(255, 255, 255, 0.3) !important; }}
+    
+    /* Reset Button */
+    .reset-btn-container {{
+        position: absolute;
+        bottom: 90px;
+        right: 10px;
+        z-index: 1000;
+    }}
+    .reset-btn {{
+        background: rgba(0, 0, 0, 0.4);
+        backdrop-filter: blur(12px) saturate(150%);
+        -webkit-backdrop-filter: blur(12px) saturate(150%);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        color: white;
+        padding: 10px 14px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: bold;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-family: 'Google Sans', Arial, sans-serif;
+        font-size: 13px;
+    }}
+    .reset-btn:hover {{
+        background: rgba(188, 2, 2, 0.7);
+        border-color: #ff0000;
+    }}
+    </style>
+    
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {{
+        var mapElement = document.querySelector('.folium-map');
+        var mapId = mapElement.id;
+        var map = window[mapId];
+        
+        var btn = document.createElement('button');
+        btn.innerHTML = '🎯 Reset View';
+        btn.className = 'reset-btn';
+        btn.onclick = function() {{
+            map.flyToBounds([[{b[0]}, {b[2]}], [{b[1]}, {b[3]}]], {{duration: 1.5}});
+        }};
+        
+        var container = document.createElement('div');
+        container.className = 'reset-btn-container';
+        container.appendChild(btn);
+        mapElement.parentNode.appendChild(container);
+    }});
+    </script>
+    """
+    m.get_root().header.add_child(folium.Element(custom_html))
+    
     return m.get_root().render()
 
 
@@ -193,7 +277,6 @@ def chart_panel(pv, yr):
     years = list(pv.index)
     with st.container(key="charts_panel"):
         if cur == "cal":
-            # Changed colorscale to start with light gray/white instead of black
             cal_colorscale = [[0, "#FFFFFF"], [0.35, "#FFCDCD"], [0.7, "#FF0000"], [1, "#8B0000"]]
             
             fig = go.Figure(go.Heatmap(z=pv.values, x=MONTHS, y=[str(y) for y in years], xgap=2, ygap=2, zmin=0,
@@ -201,10 +284,8 @@ def chart_panel(pv, yr):
                                        hovertemplate="Year: %{y}<br>Fires: %{z}<extra></extra>",
                                        colorbar=dict(thickness=8, len=.9, tickformat=",d", tickfont=dict(color="black"))))
             i = years.index(yr)
-            # Changed highlight box to black so it shows on light background
             fig.add_shape(type="rect", x0=-.5, x1=11.5, y0=i - .5, y1=i + .5, line=dict(color="#000000", width=2))
             
-            # Create a light layout just for the calendar
             cal_layout = LAYOUT.copy()
             cal_layout.update(
                 paper_bgcolor="#FFFFFF", 

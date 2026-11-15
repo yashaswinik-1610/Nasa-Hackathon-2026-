@@ -62,17 +62,17 @@ To compare the two sensors, the data must be mapped to a common spatial grid.
 
 The application is built entirely in Python and utilizes the following open-source libraries:
 - [Streamlit](https://streamlit.io/): The core framework for building the interactive web application.
-- Pandas: Data manipulation, filtering, and aggregation.
-- PyArrow: Efficient reading of the compressed Parquet dataset.
-- Plotly: Interactive graphs, including the heatmap calendar and anomaly bar charts.
-- Folium: Generating the interactive satellite map.
-- Streamlit-Folium: Integrating the Folium map into Streamlit.
-- NumPy: Mathematical operations during data preprocessing.
+- [Pandas](https://pandas.pydata.org/): Data manipulation, filtering, and aggregation.
+- [PyArrow](https://arrow.apache.org/): Efficient reading of the compressed Parquet dataset.
+- [Plotly](https://plotly.com/python/): Interactive graphs, including the heatmap calendar and anomaly bar charts.
+- [Folium](https://python-visualization.github.io/folium/): Generating the interactive satellite map.
+- [Streamlit-Folium](https://github.com/randyzwitch/streamlit-folium): Integrating the Folium map into Streamlit.
+- [NumPy](https://numpy.org/): Mathematical operations during data preprocessing.
 
 
 ## Data Source
 
-The raw data was sourced from NASA FIRMS (Fire Information for Resource Management System) https://firms.modaps.eosdis.nasa.gov/download/. Specifically, the data was downloaded for Canada and US. The dataset includes:
+The raw data was sourced from NASA FIRMS [Fire Information for Resource Management System](https://firms.modaps.eosdis.nasa.gov/download/). Specifically, the data was downloaded for Canada and US. The dataset includes:
 - MODIS (2001-2025)
 - VIIRS S-NPP (2012-2025)
 - VIIRS NOAA-20 (2018-2025)
@@ -91,17 +91,17 @@ streamlit run app.py
 ```
 
 
-## Data Source
+## Future Scope
 
-The raw data was sourced from NASA FIRMS (Fire Information For Resource Management System). The dataset includes:
-- MODIS (2001-2025)
-- VIIRS 2-NPP (2012-2025)
-- VIIRS NOAA-20 (2018-2025)
+- **Global Scaling:** While this proof-of-concept focuses on Canada and the US, the Dockerized pipeline can be immediately scaled to process global FIRMS data.
+- **Real-Time Integration:** The architecture is designed to ingest near-real-time FIRMS data (last 24 hours). Emergency managers could compare a fire happening today against the 25-year historical baseline for the exact location.
+- **Fire Progess Timeline (Dynamic Tracking):** Currently, MV-Sat visualizes historical fire data aggregated by month and year. A future iteration will integrate near-real-time (NRT) FIRMS data to provide a dynamic, day-by-day timeline of active fires. Users will be able to track exactly when a specific fire event started, how it spread over time, and compare its current growth trajectory against historical baseline fires for that region.
+- **Predictive Modeling:** The harmonized dataset provides a clean foundation for training machine learning models to predict fire severity based on historical anomalies and weather patterns.
 
 
 ## AI Tools Disclosure
 
-In the spirit of transparency and modern development practices, we utilized AI Large Language Models (Gemini, Claude, Grok) as coding assistances. Their role was strictly limited to :
+In the spirit of transparency and modern development practices, we utilized AI Large Language Models ([Gemini](https://gemini.google.com/), [Claude](https://claude.ai/), [Grok](https://grok.com/) as coding assistances. Their role was strictly limited to :
 - Debugging memory and deployment issues during the transition from local to cloud environments.
 - Assisting with the advances CSS/HTML injection to achieve the glassmorphism UI.
 - Drafting documentation.
@@ -109,3 +109,7 @@ In the spirit of transparency and modern development practices, we utilized AI L
 All data processing logic, the spatial gridding algorithm, the harmonization methodology and the scientific validation of the results were designed and implemented by the team. 
 
 
+## Team
+
+- Yashaswini K
+- Jose Miguel Jaramillo Betancur

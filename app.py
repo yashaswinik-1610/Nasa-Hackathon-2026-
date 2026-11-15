@@ -6,7 +6,7 @@ import plotly.graph_objects as go
 import folium
 import streamlit.components.v1 as components
 
-APP_URL = "https://your-app-name.streamlit.app"   # <<< your deployed link (used by Share)
+APP_URL = "https://nasa-hackathon-2026-mv-sat-jx7dmzc5v78pvxslqczmeq.streamlit.app/"   
 PARQUET = "Processed Data/harmonized_hotspots_canada_us.parquet"
 RAW_URL = "https://github.com/yashaswinik-1610/Nasa-Hackathon-2026-MV-Sat/raw/main/Processed%20Data/harmonized_hotspots_canada_us.parquet"
 FONT = "'Google Sans Flex','Google Sans','Product Sans',Arial,sans-serif"
@@ -181,7 +181,7 @@ def map_html(year, b):
     return m.get_root().render()
 
 
-# ---------------- header ----------------
+# header 
 st.markdown('<div class="firms-header"><div><div class="logo-text">MV-Sat</div>'
             '<div class="logo-subtext">Harmonized MODIS-VIIRS Satellite Fire Detection System</div></div>'
             f'<a class="hdl" href="{RAW_URL}" target="_blank">&#11015; Download</a></div>', unsafe_allow_html=True)
@@ -208,7 +208,7 @@ if st.button("Share", key="share_btn", icon=":material/share:"):
 if st.button("About", key="about_btn", icon=":material/info:"):
     about_dialog()
 
-# ---------------- filters ----------------
+# filters 
 CITIES = {"Toronto": (43.65, -79.38), "Vancouver": (49.28, -123.12), "Calgary": (51.05, -114.07), "Montreal": (45.50, -73.57),
           "New York": (40.71, -74.00), "Los Angeles": (34.05, -118.24), "Seattle": (47.60, -122.33),
           "Miami": (25.76, -80.19), "Chicago": (41.87, -87.62)}
@@ -233,7 +233,7 @@ with st.container(key="filters_panel"):
     else:
         st.info("Click the button to center the map on your current region.")
 
-    # --- Download Filtered Data Option ---
+    # Download Filtered Data Option
     st.markdown("---")
     download_df = hotspots[
         (hotspots["year"] == year) & 
@@ -251,11 +251,11 @@ with st.container(key="filters_panel"):
 
 bounds = (float(lat_min), float(lat_max), float(lon_min), float(lon_max))
 
-# ---------------- map ----------------
+# map 
 with st.container(key="map_box"):
     components.html(map_html(year, bounds), height=700)
 
-# ---------------- glass chart panel ----------------
+# glass chart panel
 MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 LAYOUT = dict(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", height=240,
               font=dict(family="Google Sans Flex, Arial, sans-serif", color="#fff", size=11))
@@ -325,7 +325,7 @@ def chart_panel(pv, yr):
             st.markdown(f"<div style='position:absolute; top:15px; right:20px; background:rgba(0,0,0,0.6); padding:4px 10px; border-radius:8px; font-size:12px; color:#fff;'><b>{yr} Trend:</b> {pct_diff:+.1f}% vs Avg</div>", unsafe_allow_html=True)
             st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
             
-        else: # Anomaly
+        else: 
             colors = ['#FF0000' if x > 0 else '#3B82F6' for x in anomaly]
             fig = go.Figure(go.Bar(x=years, y=anomaly.values, marker_color=colors, 
                                    hovertemplate="Year: %{x}<br>Anomaly: %{y:,d}<extra></extra>"))

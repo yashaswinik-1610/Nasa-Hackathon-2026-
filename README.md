@@ -43,11 +43,10 @@ To ensure we are only looking at high-confidence fire events, we apply strict fi
 To compare the two sensors, the data must be mapped to a common spatial grid.
 - **Algorithm:** We round the raw floating-point coordinates to the nearest '0.01' degree (approximately 1.1km at the equator).
 - **Implementation:**
-    '''python
+     ```python
   grid_iy = np.round(latitude / 0.01).astype("int32")
   grid_ix = np.round(longitude / 0.01).astype("int32")
   grid_id = grid_iy.astype(str) + "_" + grid_ix.astype(str)
-  '''
 
  ### 4. Harmonization Algorithm (Overlap-Based Bias Correction)
  To remove the sensor bias, we use the years where both satellites were active (2012-2025) to learn the statistical relationship between them.

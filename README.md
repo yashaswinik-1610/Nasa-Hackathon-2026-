@@ -47,6 +47,7 @@ To compare the two sensors, the data must be mapped to a common spatial grid.
   grid_iy = np.round(latitude / 0.01).astype("int32")
   grid_ix = np.round(longitude / 0.01).astype("int32")
   grid_id = grid_iy.astype(str) + "_" + grid_ix.astype(str)
+  '''
 
  ### 4. Harmonization Algorithm (Overlap-Based Bias Correction)
  To remove the sensor bias, we use the years where both satellites were active (2012-2025) to learn the statistical relationship between them.

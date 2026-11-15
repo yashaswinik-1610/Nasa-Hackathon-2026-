@@ -50,9 +50,9 @@ To compare the two sensors, the data must be mapped to a common spatial grid.
 
  ### 4. Harmonization Algorithm (Overlap-Based Bias Correction)
  To remove the sensor bias, we use the years where both satellites were active (2012-2025) to learn the statistical relationship between them.
-- **Step A (Overlap):** Group the 2012-2025 data by |grid_id| and month, counting the total MODIS detections and total VIIRS detections.
-- **Step B (Ratio Calculation):** Calculate ratio = VIIRS_count / MODIS_count.
-- **Step C (Noise Reduction):** Filter out grid cells where MODIS_count < 2 to prevent division-by-zero errors and statistical noise. Clip extreme outliers between 0.5 and 50.9.
+- **Step A (Overlap):** Group the 2012-2025 data by `grid_id` and `month`, counting the total MODIS detections and total VIIRS detections.
+- **Step B (Ratio Calculation):** Calculate `ratio = VIIRS_count / MODIS_count`.
+- **Step C (Noise Reduction):** Filter out grid cells where `MODIS_count < 2` to prevent division-by-zero errors and statistical noise. Clip extreme outliers between `0.5` and `50.9`.
 - **Step D (median):** Calculate the global median ratio. **Result: 6.00** (Meaning VIIRS detects 6 times as many fires as MODIS in the same cell/month).
 - **Step E (Correction):** For the pre-2012 era, multiply the raw MODIS counts by the learned local ratio (or the global median of 6.00 if local data is missing).
 - **Step F (Concatenation):** Combine the corrected pre-2012 data with the post-2012 VIIRS data to create a seamless 25-year time series.
@@ -61,6 +61,51 @@ To compare the two sensors, the data must be mapped to a common spatial grid.
 ## Third-Party Libraries & Tools Used
 
 The application is built entirely in Python and utilizes the following open-source libraries:
-- 
+- Streamlit: The core framework for building the interactive web application.
+- Pandas: Data manipulation, filtering, and aggregation.
+- PyArrow: Efficient reading of the compressed Parquet dataset.
+- Plotly: Interactive graphs, including the heatmap calendar and anomaly bar charts.
+- Folium: Generating the interactive satellite map.
+- Streamlit-Folium: Integrating the Folium map into Streamlit.
+- NumPy: Mathematical operations during data preprocessing.
+
+
+## Data Source
+
+The raw data was sourced from NASA FIRMS (Fire Information for Resource Management System) https://firms.modaps.eosdis.nasa.gov/download/. Specifically, the data was downloaded for Canada and US. The dataset includes:
+- MODIS (2001-2025)
+- VIIRS S-NPP (2012-2025)
+- VIIRS NOAA-20 (2018-2025)
+
+
+## How To Run Locally 
+
+1. Clone this repository.
+2. Install the required dependencies:
+```
+pip intall -r requirements.txt
+```
+3. Run the Streamlit app:
+```
+streamlit run app.py
+```
+
+
+## Data Source
+
+The raw data was sourced from NASA FIRMS (Fire Information For Resource Management System). The dataset includes:
+- MODIS (2001-2025)
+- VIIRS 2-NPP (2012-2025)
+- VIIRS NOAA-20 (2018-2025)
+
+
+## AI Tools Disclosure
+
+In the spirit of transparency and modern development practices, we utilized AI Large Language Models (Gemini, Claude, Grok) as coding assistances. Their role was strictly limited to :
+- Debugging memory and deployment issues during the transition from local to cloud environments.
+- Assisting with the advances CSS/HTML injection to achieve the glassmorphism UI.
+- Drafting documentation.
+
+All data processing logic, the spatial gridding algorithm, the harmonization methodology and the scientific validation of the results were designed and implemented by the team. 
 
 

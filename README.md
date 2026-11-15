@@ -26,22 +26,22 @@ Wildfire management requires a reliable, long-term view of fire history. However
 Our data pipeline is designed to ingest millions of raw satellite detections, filter out noise, and mathematically align the two different sensors into a single, consistent time series.
 
 ### 1. Data Ingestion & Pre-Processing
-- **Chunking:** Because the raw FIRMS CSVs are massive (over 50,000 rows per file), they are read in chunks using 'pandas' to prevent memory overflow.
+- **Chunking:** Because the raw FIRMS CSVs are massive (over 50,000 rows per file), they are read in chunks using `pandas` to prevent memory overflow.
 - **Schema Standardization:** MODIS and VIIRS have different column names for the same physical measurements. The algorithm used to unify them:
-  - 'brightness' (MODIS) and 'bright_ti4' (VIIRS) into a standard 'brightness_k' column.
-  - Dates are parsed using 'pd.to_datetime()' with errors coerced to null.
+  - `brightness` (MODIS) and `bright_ti4` (VIIRS) into a standard `brightness_k` column.
+  - Dates are parsed using `pd.to_datetime()` with errors coerced to null.
  
 ### 2. Quality Screening & Filtering Algorithms
 To ensure we are only looking at high-confidence fire events, we apply strict filtering logic:
 - **Confidence Filtering:**
-   - *MODIS:* The 'confidence' column is a numeric percentage (0-100). We drop all rows with a confidence score of '<80'.
-   - *VIIRS:* The 'confidence' column is next ('l', 'n', 'h'). We map these to integers (0, 1, 2) and keep only 'nominal' (1) and 'high' (2) confidence detections.
-- **Type Filtering:** For VIIRS data, we filter for 'type == 0' to ensure we are only looking at vegetation fires (excluding volcanic activity or gas flares).
+   - *MODIS:* The `confidence` column is a numeric percentage (0-100). We drop all rows with a confidence score of `<80`.
+   - *VIIRS:* The `confidence` column is next (`l`, `n`, `h`). We map these to integers (0, 1, 2) and keep only `nominal` (1) and `high` (2) confidence detections.
+- **Type Filtering:** For VIIRS data, we filter for `type == 0` to ensure we are only looking at vegetation fires (excluding volcanic activity or gas flares).
 - **Spatial Bounding Box Filtering:** Detections outside of North America (Latitude 18° to 84°N, Longitude 50° to 170°W) are removed to focus the study on Canada and the US.
 
 ### 3. Spatial Gridding Algorithm (1km Resolution)
 To compare the two sensors, the data must be mapped to a common spatial grid.
-- **Algorithm:** We round the raw floating-point coordinates to the nearest '0.01' degree (approximately 1.1km at the equator).
+- **Algorithm:** We round the raw floating-point coordinates to the nearest `0.01` degree (approximately 1.1km at the equator).
 - **Implementation:**
      ```python
   grid_iy = np.round(latitude / 0.01).astype("int32")
@@ -50,7 +50,7 @@ To compare the two sensors, the data must be mapped to a common spatial grid.
 
  ### 4. Harmonization Algorithm (Overlap-Based Bias Correction)
  To remove the sensor bias, we use the years where both satellites were active (2012-2025) to learn the statistical relationship between them.
-- **Step A (Overlap):** Group the 2012-2025 data by grid_id and month, counting the total MODIS detections and total VIIRS detections.
+- **Step A (Overlap):** Group the 2012-2025 data by |grid_id| and month, counting the total MODIS detections and total VIIRS detections.
 - **Step B (Ratio Calculation):** Calculate ratio = VIIRS_count / MODIS_count.
 - **Step C (Noise Reduction):** Filter out grid cells where MODIS_count < 2 to prevent division-by-zero errors and statistical noise. Clip extreme outliers between 0.5 and 50.9.
 - **Step D (median):** Calculate the global median ratio. **Result: 6.00** (Meaning VIIRS detects 6 times as many fires as MODIS in the same cell/month).

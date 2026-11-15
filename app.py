@@ -4,7 +4,7 @@ import pandas as pd
 import streamlit as st
 import plotly.graph_objects as go
 import folium
-from streamlit_folium import st_folium
+import streamlit.components.v1 as components
 
 APP_URL = "https://your-app-name.streamlit.app"   # <<< your deployed link (used by Share)
 PARQUET = "Processed Data/harmonized_hotspots_canada_us.parquet"
@@ -55,7 +55,16 @@ p, label, h5 {color:#fff !important;}
 .st-key-charts_btn button {background:var(--c2) !important; border:0 !important; border-radius:8px !important; padding:2px 12px !important;}
 .st-key-charts_btn button:hover {background:var(--c3) !important;}
 .st-key-charts_panel button[role="tab"] p {font-size:1.05rem !important; font-weight:700 !important; color:#fff !important;}
-.st-key-charts_panel [data-baseweb="tab-highlight"] {background:var(--c3) !important;}
+.st-key-chart_pick {display:flex; justify-content:center; margin-bottom:4px;}
+.st-key-chart_pick [role="radiogroup"] {background:rgba(0,0,0,.45); border:1px solid rgba(255,0,0,.5); border-radius:999px; padding:5px; gap:4px;}
+.st-key-chart_pick label {border-radius:999px; padding:6px 26px !important; margin:0 !important; cursor:pointer;}
+.st-key-chart_pick label > div:first-child {display:none;}
+.st-key-chart_pick label:hover {background:rgba(188,2,2,.35);}
+.st-key-chart_pick label:has(input:checked) {background:var(--c2);}
+.st-key-chart_pick label p {font-size:1.1rem !important; font-weight:700 !important; margin:0;}
+.hdl {position:fixed; top:20px; right:265px; z-index:1000001; color:#fff !important; font-size:17px; font-weight:600;
+  padding:8px 12px; border-radius:6px; text-decoration:none !important;}
+.hdl:hover {background:var(--c2);}
 </style>
 """
 
@@ -67,7 +76,8 @@ def flip(k):
     st.session_state[k] = not st.session_state[k]
 
 
-dyn = f".st-key-charts_panel{{left:{300 if st.session_state.show_filters else 20}px;right:20px;}}"
+_left = 300 if st.session_state.show_filters else 20
+dyn = f".st-key-charts_panel{{left:{_left}px;width:calc(100vw - {_left + 20}px);}}"
 if not st.session_state.show_filters:
     dyn += ".st-key-filters_panel{display:none !important;}"
 st.markdown(BASE_CSS + f"<style>{dyn}</style>", unsafe_allow_html=True)
@@ -91,27 +101,28 @@ def chart_data(b):
     return pv.reindex(index=range(2001, 2026), columns=range(1, 13), fill_value=0)
 
 
-@st.cache_resource(show_spinner=False, max_entries=24)
-def build_map(year, b):
+@st.cache_data(show_spinner=False, max_entries=24)
+def map_html(year, b):
     d = hotspots[(hotspots.year == year) & (hotspots.grid_lat >= b[0]) & (hotspots.grid_lat <= b[1]) &
                  (hotspots.grid_lon >= b[2]) & (hotspots.grid_lon <= b[3])]
     m = folium.Map(location=[(b[0] + b[1]) / 2, (b[2] + b[3]) / 2], zoom_start=3, min_zoom=3, tiles="Esri World Imagery",
-                   prefer_canvas=True, control_scale=True, min_lat=-85, max_lat=85, min_lon=-180, max_lon=180, max_bounds=True)
+                   prefer_canvas=True, min_lat=-85, max_lat=85, min_lon=-180, max_lon=180, max_bounds=True)
     m.fit_bounds([[b[0], b[2]], [b[1], b[3]]])
     if len(d):
         for r in d.sample(n=min(3000, len(d)), random_state=42).itertuples():
             folium.CircleMarker([r.grid_lat, r.grid_lon], radius=2.5, color="#FF0000", fill=True, fill_color="#FF0000",
                                 fill_opacity=0.85, weight=1,
                                 tooltip=f"Lat: {r.grid_lat:.3f}<br>Lon: {r.grid_lon:.3f}<br>Year: {r.year}<br>Fires: {r.harmonized_count}").add_to(m)
-    return m
+    m.get_root().header.add_child(folium.Element(
+        "<style>html,body{height:100%;margin:0}.leaflet-top.leaflet-left{top:auto;bottom:90px;left:auto;right:10px}</style>"))
+    return m.get_root().render()
 
 
 # ---------------- header ----------------
 st.markdown('<div class="firms-header"><div><div class="logo-text">FIREWATCH</div>'
-            '<div class="logo-subtext">Satellite Fire Detection System</div></div></div>', unsafe_allow_html=True)
+            '<div class="logo-subtext">Satellite Fire Detection System</div></div>'
+            f'<a class="hdl" href="{RAW_URL}" target="_blank">&#11015; Download</a></div>', unsafe_allow_html=True)
 st.button("☰", key="menu_btn", on_click=flip, args=("show_filters",), help="Show / hide filters")
-with st.container(key="dl_btn"):
-    st.link_button("Download", RAW_URL, icon=":material/download:")
 
 
 @st.dialog("Share FIREWATCH")
@@ -163,7 +174,7 @@ bounds = (float(lat_min), float(lat_max), float(lon_min), float(lon_max))
 
 # ---------------- map ----------------
 with st.container(key="map_box"):
-    st_folium(build_map(year, bounds), height=700, use_container_width=True, returned_objects=[], key="fire_map")
+    components.html(map_html(year, bounds), height=700)
 
 # ---------------- glass chart panel (tabs: pick one) ----------------
 MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
@@ -173,14 +184,11 @@ LAYOUT = dict(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", heigh
 
 @st.fragment
 def chart_panel(pv, yr):
-    shown = st.session_state.show_charts
     with st.container(key="charts_panel"):
-        st.button("▼ Hide charts" if shown else "▲ Show charts", key="charts_btn", on_click=flip, args=("show_charts",))
-        if not shown:
-            return
-        t1, t2 = st.tabs(["Burning Calendar", "Analytics Graph"])
+        with st.container(key="chart_pick"):
+            pick = st.radio("Chart", ["Burning Calendar", "Analytics Graph"], horizontal=True, label_visibility="collapsed")
         years = list(pv.index)
-        with t1:
+        if pick == "Burning Calendar":
             fig = go.Figure(go.Heatmap(z=pv.values, x=MONTHS, y=[str(y) for y in years], xgap=2, ygap=2, zmin=0,
                                        colorscale=[[0, "#000000"], [.35, "#830000"], [.7, "#BC0202"], [1, "#FF0000"]],
                                        hovertemplate="Year: %{y}<br>Fires: %{z}<extra></extra>",
@@ -190,7 +198,7 @@ def chart_panel(pv, yr):
             fig.update_layout(**LAYOUT, margin=dict(l=40, r=5, t=5, b=25),
                               xaxis=dict(showgrid=False), yaxis=dict(autorange="reversed", type="category", showgrid=False, tickfont=dict(size=8)))
             st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
-        with t2:
+        else:
             tot = pv.sum(axis=1)
             fig = go.Figure(go.Scatter(x=years, y=tot.values, mode="lines+markers", fill="tozeroy", fillcolor="rgba(255,0,0,.18)",
                                        line=dict(width=3, color="#FF0000"), marker=dict(size=5, color="#FF0000"),

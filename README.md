@@ -102,7 +102,7 @@ streamlit run app.py
 
 ## AI Tools Disclosure
 
-In the spirit of transparency and modern development practices, we utilized AI Large Language Models ([Gemini](https://gemini.google.com/), [Claude](https://claude.ai/), [Grok](https://grok.com/) as coding assistances. Their role was strictly limited to :
+In the spirit of transparency and modern development practices, we utilized AI Large Language Models ([Gemini](https://gemini.google.com/), [Claude](https://claude.ai/), [Grok](https://grok.com/)) as coding assistances. Their role was strictly limited to :
 - Debugging memory and deployment issues during the transition from local to cloud environments.
 - Assisting with the advances CSS/HTML injection to achieve the glassmorphism UI.
 - Drafting documentation.
@@ -114,3 +114,9 @@ All data processing logic, the spatial gridding algorithm, the harmonization met
 
 - Yashaswini K
 - Jose Miguel Jaramillo Betancur
+
+
+## Participation Certificate
+
+<img width="1056" height="816" alt="195c25a6-c741-4ccc-89a3-03dc49f692eb" src="https://github.com/user-attachments/assets/c2c95359-a907-4879-bdd6-0f5fa6a8eda6" />
+
